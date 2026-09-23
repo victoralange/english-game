@@ -372,6 +372,30 @@ COMPLETED_BTN_MENU_H = 155 / 781
 COMPLETED_PANEL_PADDING = 0.02
 
 
+# ============================================================
+# money_score.png — proporções internas
+# ============================================================
+MS_SIZE_RATIO = 0.14          # tamanho geral (bem pequeno)
+MS_MARGIN_RIGHT = 0.03        # margem da borda direita
+MS_MARGIN_TOP = 0.03          # margem do topo
+
+MS_MONEY_X = 0.112
+MS_MONEY_Y = 0.278
+MS_MONEY_W = 0.264
+MS_MONEY_H = 0.222
+
+MS_SCORE_X = 0.115
+MS_SCORE_Y = 0.588
+MS_SCORE_W = 0.225
+MS_SCORE_H = 0.174
+
+# Texto alinhado pela ESQUERDA, dentro da caixa do label
+MS_TEXT_PAD_X = 0.06
+
+# Opacidade da imagem money_score.png (0-255)
+MS_IMG_ALPHA = 160
+
+
 def wrap_text(text, font, max_width):
     words = text.split(" ")
     lines = []
@@ -431,6 +455,7 @@ _ingredient_cache = {}
 _dish_image_cache = {}
 _star_cache = {}
 _customer_image_cache = {}
+_money_score_cache = {}
 
 
 def get_ingredient_image(rel_path):
@@ -487,6 +512,18 @@ def get_customer_image(rel_path):
     else:
         img = None
     _customer_image_cache[rel_path] = img
+    return img
+
+
+def get_money_score_image(rel_path="money_score.png"):
+    if rel_path in _money_score_cache:
+        return _money_score_cache[rel_path]
+    full_path = os.path.join(ASSETS_DIR, rel_path)
+    if os.path.exists(full_path):
+        img = load_image_hq(rel_path)
+    else:
+        img = None
+    _money_score_cache[rel_path] = img
     return img
 
 
@@ -925,6 +962,10 @@ def run():
         "completed_values_rects": [],
         "completed_btn_play_rect": None,
         "completed_btn_menu_rect": None,
+        "money_score_img": None,
+        "ms_rect": None,
+        "ms_money_rect": None,
+        "ms_score_rect": None,
     }
 
     def set_serving_background(customer_image_path):
@@ -1184,6 +1225,42 @@ def run():
             state["completed_btn_play_rect"] = None
             state["completed_btn_menu_rect"] = None
 
+        # ------------------------------------------------------------
+        # money_score.png — beeeem pequeno no canto superior direito
+        # COM OPACIDADE REDUZIDA
+        # ------------------------------------------------------------
+        ms_img = get_money_score_image("money_score.png")
+        state["money_score_img"] = ms_img
+        if ms_img is not None:
+            img_w = int(w * MS_SIZE_RATIO)
+            ratio = img_w / ms_img.get_width()
+            img_h = int(ms_img.get_height() * ratio)
+            scaled = pygame.transform.smoothscale(ms_img, (img_w, img_h))
+            # aplica opacidade (alpha) na imagem
+            scaled.set_alpha(MS_IMG_ALPHA)
+            state["money_score_img"] = scaled
+
+            ms_x = w - img_w - int(w * MS_MARGIN_RIGHT)
+            ms_y = int(h * MS_MARGIN_TOP)
+            state["ms_rect"] = pygame.Rect(ms_x, ms_y, img_w, img_h)
+
+            state["ms_money_rect"] = pygame.Rect(
+                ms_x + int(img_w * MS_MONEY_X),
+                ms_y + int(img_h * MS_MONEY_Y),
+                int(img_w * MS_MONEY_W),
+                int(img_h * MS_MONEY_H),
+            )
+            state["ms_score_rect"] = pygame.Rect(
+                ms_x + int(img_w * MS_SCORE_X),
+                ms_y + int(img_h * MS_SCORE_Y),
+                int(img_w * MS_SCORE_W),
+                int(img_h * MS_SCORE_H),
+            )
+        else:
+            state["ms_rect"] = None
+            state["ms_money_rect"] = None
+            state["ms_score_rect"] = None
+
         state["fonts"] = {
             "answer": load_font(int(state["WDS_H_PX"] * 0.035), bold=False),
             "ui": load_font(int(h * 0.028), bold=False),
@@ -1199,6 +1276,7 @@ def run():
             "completed_label": load_font(int(h * 0.032), bold=False),
             "completed_value": load_font(int(h * 0.032), bold=False),
             "rank": load_font(int(h * 0.045), bold=False),
+            "money_score": load_font(max(12, int(img_h * 0.16)), bold=True) if ms_img is not None else load_font(16, bold=True),
         }
 
     rebuild_layout()
@@ -1704,10 +1782,38 @@ def run():
             screen.blit(state["serving_bg"], state["serve_rect"])
 
             s_rect = state["serve_rect"]
-            score_surf = state["fonts"]["ui"].render(f"Score: {score}", True, (255, 255, 255))
-            money_surf = state["fonts"]["ui"].render(f"Money: ${money}", True, (255, 255, 255))
-            screen.blit(score_surf, (s_rect.x + s_rect.width - score_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03)))
-            screen.blit(money_surf, (s_rect.x + s_rect.width - money_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03) + score_surf.get_height() + 8))
+
+            # ------------------------------------------------------------
+            # money_score.png no canto superior direito (com opacidade)
+            # Texto com orientação/alinhamento à ESQUERDA
+            # ------------------------------------------------------------
+            if state["money_score_img"] is not None and state["ms_rect"] is not None:
+                screen.blit(state["money_score_img"], state["ms_rect"].topleft)
+
+                ms_font = state["fonts"]["money_score"]
+
+                if state["ms_money_rect"] is not None:
+                    money_str = f"${money}"
+                    money_surf = ms_font.render(money_str, True, (255, 255, 255))
+                    money_rect = state["ms_money_rect"]
+                    # Texto começa na borda ESQUERDA do label (left-aligned)
+                    text_x = money_rect.right - int(money_rect.width * MS_TEXT_PAD_X) - money_surf.get_width()
+                    text_y = money_rect.centery - money_surf.get_height() // 2
+                    screen.blit(money_surf, (text_x, text_y))
+
+                if state["ms_score_rect"] is not None:
+                    score_str = f"{score}"
+                    score_surf = ms_font.render(score_str, True, (255, 255, 255))
+                    score_rect = state["ms_score_rect"]
+                    # Texto começa na borda ESQUERDA do label (left-aligned)
+                    text_x = score_rect.right - int(score_rect.width * MS_TEXT_PAD_X) - score_surf.get_width()
+                    text_y = score_rect.centery - score_surf.get_height() // 2
+                    screen.blit(score_surf, (text_x, text_y))
+            else:
+                score_surf = state["fonts"]["ui"].render(f"Score: {score}", True, (255, 255, 255))
+                money_surf = state["fonts"]["ui"].render(f"Money: ${money}", True, (255, 255, 255))
+                screen.blit(score_surf, (s_rect.x + s_rect.width - score_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03)))
+                screen.blit(money_surf, (s_rect.x + s_rect.width - money_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03) + score_surf.get_height() + 8))
 
             wds_rect = None
             if wds_phase != "idle":
