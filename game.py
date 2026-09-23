@@ -2,6 +2,7 @@ import os
 import json
 import math
 import random
+import traceback
 import pygame
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -15,25 +16,20 @@ clock = pygame.time.Clock()
 MIXER_OK = False
 
 
-_audio_cache = {}
+def dbg(*args, **kwargs):
+    print("[GAME]", *args, **kwargs, flush=True)
 
 
 def load_sound(filename):
     if not MIXER_OK:
         return None
-    if filename in _audio_cache:
-        return _audio_cache[filename]
     path = os.path.join(ASSETS_DIR, filename)
     if not os.path.exists(path):
-        _audio_cache[filename] = None
         return None
     try:
-        snd = pygame.mixer.Sound(path)
-        _audio_cache[filename] = snd
-        return snd
+        return pygame.mixer.Sound(path)
     except Exception as e:
         print("Erro carregando som", filename, e)
-        _audio_cache[filename] = None
         return None
 
 
@@ -48,6 +44,13 @@ def play_sound(filename, volume=0.3):
 
 
 def start_background_music():
+    global MIXER_OK
+    try:
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+        MIXER_OK = True
+    except Exception:
+        MIXER_OK = False
     if not MIXER_OK:
         return
     path = os.path.join(ASSETS_DIR, "background.ogg")
@@ -61,8 +64,16 @@ def start_background_music():
         print("Erro tocando música de fundo:", e)
 
 
+def stop_background_music():
+    try:
+        pygame.mixer.music.stop()
+    except Exception:
+        pass
+
+
 def load_image_hq(filename, target_size=None):
-    pil_img = Image.open(os.path.join(ASSETS_DIR, filename)).convert("RGBA")
+    full = os.path.join(ASSETS_DIR, filename)
+    pil_img = Image.open(full).convert("RGBA")
     if target_size:
         pil_img = pil_img.resize(target_size, Image.Resampling.LANCZOS)
     surface = pygame.image.fromstring(pil_img.tobytes(), pil_img.size, "RGBA")
@@ -70,13 +81,21 @@ def load_image_hq(filename, target_size=None):
 
 
 def load_questions():
-    with open(os.path.join(BASE_DIR, "questions.json"), "r", encoding="utf-8") as f:
+    path = os.path.join(BASE_DIR, "questions.json")
+    with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data["questions"]
 
 
+_fit_cover_cache = {}
+
+
 def fit_image_cover(filename, screen_w, screen_h):
-    pil = Image.open(os.path.join(ASSETS_DIR, filename)).convert("RGBA")
+    key = (filename, screen_w, screen_h)
+    if key in _fit_cover_cache:
+        return _fit_cover_cache[key]
+    full = os.path.join(ASSETS_DIR, filename)
+    pil = Image.open(full).convert("RGBA")
     img_w, img_h = pil.size
     ratio = max(screen_w / img_w, screen_h / img_h)
     new_w = int(img_w * ratio)
@@ -86,23 +105,34 @@ def fit_image_cover(filename, screen_w, screen_h):
     offset_x = (screen_w - new_w) // 2
     offset_y = (screen_h - new_h) // 2
     rect = surface.get_rect(topleft=(offset_x, offset_y))
-    return surface, rect, offset_x, offset_y
+    result = (surface, rect, offset_x, offset_y)
+    _fit_cover_cache[key] = result
+    return result
+
+
+_font_cache = {}
 
 
 def load_font(size, bold=False):
+    key = (size, bold)
+    if key in _font_cache:
+        return _font_cache[key]
     font_path = os.path.join(ASSETS_DIR, "Inter-VariableFont_opsz,wght.ttf")
+    f = None
     if os.path.exists(font_path):
         try:
             f = pygame.font.Font(font_path, size)
             if bold:
                 f.set_bold(True)
-            return f
         except Exception:
-            pass
-    try:
-        return pygame.font.SysFont("arial", size, bold=bold)
-    except Exception:
-        return pygame.font.Font(None, size)
+            f = None
+    if f is None:
+        try:
+            f = pygame.font.SysFont("arial", size, bold=bold)
+        except Exception:
+            f = pygame.font.Font(None, size)
+    _font_cache[key] = f
+    return f
 
 
 def apply_rounded_corners(surface, radius):
@@ -131,7 +161,7 @@ def make_square_surface(surface):
     return cropped
 
 
-BUTTON_SS = 4
+BUTTON_SS = 2
 
 
 def make_rounded_button_image(w, h, bg_color, border_color, radius=12, border_width=3):
@@ -375,6 +405,100 @@ MS_TEXT_PAD_PX = 40
 MS_IMG_ALPHA = 160
 
 
+_ingredient_cache = {}
+_dish_image_cache = {}
+_star_cache = {}
+_customer_image_cache = {}
+_money_score_cache = {}
+
+
+def get_ingredient_image(rel_path):
+    if rel_path in _ingredient_cache:
+        return _ingredient_cache[rel_path]
+    full_path = os.path.join(ASSETS_DIR, rel_path)
+    if os.path.exists(full_path):
+        img = load_image_hq(rel_path)
+    else:
+        img = pygame.Surface((120, 120), pygame.SRCALPHA)
+        img.fill((120, 120, 120, 200))
+        pygame.draw.rect(img, (200, 200, 200), img.get_rect(), 3)
+    _ingredient_cache[rel_path] = img
+    return img
+
+
+def get_dish_image(rel_path):
+    if rel_path in _dish_image_cache:
+        return _dish_image_cache[rel_path]
+    if not rel_path:
+        _dish_image_cache[rel_path] = None
+        return None
+    full_path = os.path.join(ASSETS_DIR, rel_path)
+    if os.path.exists(full_path):
+        img = load_image_hq(rel_path)
+    else:
+        img = None
+    _dish_image_cache[rel_path] = img
+    return img
+
+
+_star_scaled_cache = {}
+
+
+def get_star_image(stars):
+    stars = max(1, min(5, stars))
+    if stars in _star_cache:
+        return _star_cache[stars]
+    path = os.path.join(ASSETS_DIR, f"{stars}_star.png")
+    if os.path.exists(path):
+        img = load_image_hq(f"{stars}_star.png")
+    else:
+        img = None
+    _star_cache[stars] = img
+    return img
+
+
+def get_star_scaled(stars, max_w):
+    key = (stars, max_w)
+    if key in _star_scaled_cache:
+        return _star_scaled_cache[key]
+    img = get_star_image(stars)
+    if img is None:
+        _star_scaled_cache[key] = None
+        return None
+    ratio = min(1.0, max_w / img.get_width())
+    new_w = int(img.get_width() * ratio)
+    new_h = int(img.get_height() * ratio)
+    scaled = pygame.transform.smoothscale(img, (new_w, new_h))
+    _star_scaled_cache[key] = scaled
+    return scaled
+
+
+def get_customer_image(rel_path):
+    if not rel_path:
+        return None
+    if rel_path in _customer_image_cache:
+        return _customer_image_cache[rel_path]
+    full_path = os.path.join(ASSETS_DIR, rel_path)
+    if os.path.exists(full_path):
+        img = load_image_hq(rel_path)
+    else:
+        img = None
+    _customer_image_cache[rel_path] = img
+    return img
+
+
+def get_money_score_image(rel_path="money_score.png"):
+    if rel_path in _money_score_cache:
+        return _money_score_cache[rel_path]
+    full_path = os.path.join(ASSETS_DIR, rel_path)
+    if os.path.exists(full_path):
+        img = load_image_hq(rel_path)
+    else:
+        img = None
+    _money_score_cache[rel_path] = img
+    return img
+
+
 def wrap_text(text, font, max_width):
     words = text.split(" ")
     lines = []
@@ -430,82 +554,9 @@ def get_rank_and_stars(final_score):
         return "TRAINEE", 1
 
 
-_ingredient_cache = {}
-_dish_image_cache = {}
-_star_cache = {}
-_customer_image_cache = {}
-_money_score_cache = {}
-
-
-def get_ingredient_image(rel_path):
-    if rel_path in _ingredient_cache:
-        return _ingredient_cache[rel_path]
-    full_path = os.path.join(ASSETS_DIR, rel_path)
-    if os.path.exists(full_path):
-        img = load_image_hq(rel_path)
-    else:
-        img = pygame.Surface((120, 120), pygame.SRCALPHA)
-        img.fill((120, 120, 120, 200))
-        pygame.draw.rect(img, (200, 200, 200), img.get_rect(), 3)
-    _ingredient_cache[rel_path] = img
-    return img
-
-
-def get_dish_image(rel_path):
-    if rel_path in _dish_image_cache:
-        return _dish_image_cache[rel_path]
-    if not rel_path:
-        _dish_image_cache[rel_path] = None
-        return None
-    full_path = os.path.join(ASSETS_DIR, rel_path)
-    if os.path.exists(full_path):
-        img = load_image_hq(rel_path)
-    else:
-        img = None
-    _dish_image_cache[rel_path] = img
-    return img
-
-
-def get_star_image(stars):
-    stars = max(1, min(5, stars))
-    if stars in _star_cache:
-        return _star_cache[stars]
-    path = os.path.join(ASSETS_DIR, f"{stars}_star.png")
-    if os.path.exists(path):
-        img = load_image_hq(f"{stars}_star.png")
-    else:
-        img = None
-    _star_cache[stars] = img
-    return img
-
-
-def get_customer_image(rel_path):
-    if not rel_path:
-        return None
-    if rel_path in _customer_image_cache:
-        return _customer_image_cache[rel_path]
-    full_path = os.path.join(ASSETS_DIR, rel_path)
-    if os.path.exists(full_path):
-        img = load_image_hq(rel_path)
-    else:
-        img = None
-    _customer_image_cache[rel_path] = img
-    return img
-
-
-def get_money_score_image(rel_path="money_score.png"):
-    if rel_path in _money_score_cache:
-        return _money_score_cache[rel_path]
-    full_path = os.path.join(ASSETS_DIR, rel_path)
-    if os.path.exists(full_path):
-        img = load_image_hq(rel_path)
-    else:
-        img = None
-    _money_score_cache[rel_path] = img
-    return img
-
-
 class AnswerButton:
+    _bg_cache = {}
+
     def __init__(self, rect, text, font, index, callback, dish_image_path=None):
         self.rect = pygame.Rect(rect)
         self.text = text
@@ -526,8 +577,17 @@ class AnswerButton:
         self.bg_wrong = None
         self._build_bg_images()
 
+        self._text_cache = None
+        self._text_cache_lines = None
+
     def _build_bg_images(self):
         w, h = self.rect.width, self.rect.height
+        key = (w, h)
+        cached = AnswerButton._bg_cache.get(key)
+        if cached is not None:
+            (self.bg_normal, self.bg_hover, self.bg_pressed,
+             self.bg_correct, self.bg_wrong) = cached
+            return
         self.bg_normal = make_rounded_button_image(
             w, h, BTN_COLORS["normal"][0], BTN_COLORS["normal"][1],
             radius=BTN_BORDER_RADIUS, border_width=BTN_BORDER_WIDTH
@@ -547,6 +607,10 @@ class AnswerButton:
         self.bg_wrong = make_rounded_button_image(
             w, h, BTN_COLORS["wrong"][0], BTN_COLORS["wrong"][1],
             radius=BTN_BORDER_RADIUS, border_width=BTN_BORDER_WIDTH
+        )
+        AnswerButton._bg_cache[key] = (
+            self.bg_normal, self.bg_hover, self.bg_pressed,
+            self.bg_correct, self.bg_wrong
         )
 
     def _build_dish_image(self, dish_image_path):
@@ -588,9 +652,19 @@ class AnswerButton:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.pressed and self.rect.collidepoint(event.pos):
                 self.pressed = False
-                self.callback(self.index)
+                if self.callback:
+                    self.callback(self.index)
             else:
                 self.pressed = False
+
+    def _get_text_surfs(self):
+        if self._text_cache is not None:
+            return self._text_cache
+        max_w = self.rect.width - 20
+        lines = wrap_text(self.text, self.font, max_w)
+        surfs = [self.font.render(line, True, (255, 255, 255)) for line in lines]
+        self._text_cache = surfs
+        return surfs
 
     def draw(self, surface):
         if self.selected is True:
@@ -610,15 +684,53 @@ class AnswerButton:
             rect = self._get_dish_rect()
             surface.blit(self.dish_img, rect)
 
-        max_w = self.rect.width - 20
-        lines = wrap_text(self.text, self.font, max_w)
+        surfs = self._get_text_surfs()
         line_h = self.font.get_linesize()
-        total_h = line_h * len(lines)
+        total_h = line_h * len(surfs)
         y = self.rect.bottom - total_h - 10
-        for line in lines:
-            surf = self.font.render(line, True, (255, 255, 255))
+        for surf in surfs:
             surface.blit(surf, surf.get_rect(center=(self.rect.centerx, y + line_h // 2)))
             y += line_h
+
+
+_ing_bg_cache = {}
+_ing_checkbox_cache = None
+
+
+def _get_ing_checkbox_images():
+    global _ing_checkbox_cache
+    if _ing_checkbox_cache is not None:
+        return _ing_checkbox_cache
+    cb_size = 32
+    cb_normal = make_rounded_rect_image(
+        cb_size, cb_size, (0, 0, 0, 0), (255, 255, 255),
+        radius=6, outline_width=3
+    )
+
+    def make_check(color):
+        ss = BUTTON_SS
+        img = Image.new("RGBA", (cb_size * ss, cb_size * ss), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle(
+            (0, 0, cb_size * ss - 1, cb_size * ss - 1),
+            radius=6 * ss,
+            outline=color,
+            width=3 * ss,
+        )
+        pts = [
+            (cb_size * ss * 0.22, cb_size * ss * 0.55),
+            (cb_size * ss * 0.42, cb_size * ss * 0.75),
+            (cb_size * ss * 0.78, cb_size * ss * 0.28),
+        ]
+        draw.line(pts, fill=color, width=4 * ss, joint="curve")
+        img = img.resize((cb_size, cb_size), Image.Resampling.LANCZOS)
+        return pygame.image.fromstring(img.tobytes(), img.size, "RGBA").convert_alpha()
+
+    cb_checked = make_check((255, 220, 120))
+    cb_checked_wrong = make_check((240, 80, 80))
+    cb_checked_correct = make_check((80, 220, 100))
+    _ing_checkbox_cache = (cb_normal, cb_checked, cb_checked_wrong, cb_checked_correct)
+    return _ing_checkbox_cache
 
 
 class IngredientBox:
@@ -647,14 +759,18 @@ class IngredientBox:
         self.bg_wrong = None
         self._build_bg_images()
 
-        self.cb_normal = None
-        self.cb_checked = None
-        self.cb_checked_wrong = None
-        self.cb_checked_correct = None
-        self._build_checkbox_images()
+        self.cb_normal, self.cb_checked, self.cb_checked_wrong, self.cb_checked_correct = _get_ing_checkbox_images()
+
+        self._name_surf = None
 
     def _build_bg_images(self):
         w, h = self.rect.width, self.rect.height
+        key = (w, h)
+        cached = _ing_bg_cache.get(key)
+        if cached is not None:
+            (self.bg_normal, self.bg_hover,
+             self.bg_correct, self.bg_wrong) = cached
+            return
         self.bg_normal = make_rounded_rect_image(
             w, h, ING_COLORS["normal"][0], ING_COLORS["normal"][1],
             radius=10, outline_width=4
@@ -671,35 +787,8 @@ class IngredientBox:
             w, h, ING_COLORS["wrong"][0], ING_COLORS["wrong"][1],
             radius=10, outline_width=4
         )
-
-    def _build_checkbox_images(self):
-        cb_size = 32
-        self.cb_normal = make_rounded_rect_image(
-            cb_size, cb_size, (0, 0, 0, 0), (255, 255, 255),
-            radius=6, outline_width=3
-        )
-        self.cb_checked = self._make_checkbox_with_check(cb_size, (255, 220, 120))
-        self.cb_checked_wrong = self._make_checkbox_with_check(cb_size, (240, 80, 80))
-        self.cb_checked_correct = self._make_checkbox_with_check(cb_size, (80, 220, 100))
-
-    def _make_checkbox_with_check(self, cb_size, color):
-        ss = BUTTON_SS
-        img = Image.new("RGBA", (cb_size * ss, cb_size * ss), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.rounded_rectangle(
-            (0, 0, cb_size * ss - 1, cb_size * ss - 1),
-            radius=6 * ss,
-            outline=color,
-            width=3 * ss,
-        )
-        pts = [
-            (cb_size * ss * 0.22, cb_size * ss * 0.55),
-            (cb_size * ss * 0.42, cb_size * ss * 0.75),
-            (cb_size * ss * 0.78, cb_size * ss * 0.28),
-        ]
-        draw.line(pts, fill=color, width=4 * ss, joint="curve")
-        img = img.resize((cb_size, cb_size), Image.Resampling.LANCZOS)
-        return pygame.image.fromstring(img.tobytes(), img.size, "RGBA").convert_alpha()
+        _ing_bg_cache[key] = (self.bg_normal, self.bg_hover,
+                              self.bg_correct, self.bg_wrong)
 
     def update(self, mouse_pos):
         self.hovered = self.rect.collidepoint(mouse_pos)
@@ -722,12 +811,12 @@ class IngredientBox:
             bg = self.bg_normal
 
         surface.blit(bg, self.rect.topleft)
-
         surface.blit(self.image, self.image_rect)
 
-        name_surf = self.font.render(self.name, True, (255, 255, 255))
-        name_rect = name_surf.get_rect(center=(self.rect.centerx, self.rect.bottom - 18))
-        surface.blit(name_surf, name_rect)
+        if self._name_surf is None:
+            self._name_surf = self.font.render(self.name, True, (255, 255, 255))
+        name_rect = self._name_surf.get_rect(center=(self.rect.centerx, self.rect.bottom - 18))
+        surface.blit(self._name_surf, name_rect)
 
         cb_size = 32
         cb_pos = (self.rect.right - cb_size - 10, self.rect.top + 10)
@@ -745,6 +834,8 @@ class IngredientBox:
 
 
 class ConfirmButton:
+    _img_cache = None
+
     def __init__(self, rect, callback):
         self.rect = pygame.Rect(rect)
         self.callback = callback
@@ -753,7 +844,10 @@ class ConfirmButton:
         self.enabled = True
 
         try:
-            raw = load_image_hq("button_confirm.png")
+            if ConfirmButton._img_cache is None:
+                raw = load_image_hq("button_confirm.png")
+                ConfirmButton._img_cache = raw
+            raw = ConfirmButton._img_cache
             target_h = rect[3]
             ratio = target_h / raw.get_height()
             target_w = int(raw.get_width() * ratio)
@@ -794,7 +888,8 @@ class ConfirmButton:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.pressed = False
-                self.callback()
+                if self.callback:
+                    self.callback()
             else:
                 self.pressed = False
 
@@ -820,11 +915,11 @@ class CloseButton:
         self.hovered = False
         self.pressed = False
 
-        self.img_normal = self._make_close_image(1.0)
-        self.img_hover = self._make_close_image(1.2)
-        self.img_pressed = self._make_close_image(0.8)
+        self.img_normal = self._make_close_image()
+        self.img_hover = self.img_normal
+        self.img_pressed = self.img_normal
 
-    def _make_close_image(self, brightness):
+    def _make_close_image(self):
         w, h = self.rect.width, self.rect.height
         if w <= 0 or h <= 0:
             return pygame.Surface((1, 1), pygame.SRCALPHA)
@@ -857,7 +952,8 @@ class CloseButton:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.rect.collidepoint(event.pos):
                 self.pressed = False
-                self.callback()
+                if self.callback:
+                    self.callback()
             else:
                 self.pressed = False
 
@@ -887,7 +983,8 @@ class InvisibleButton:
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.pressed and self.rect.collidepoint(event.pos):
                 self.pressed = False
-                self.callback()
+                if self.callback:
+                    self.callback()
             else:
                 self.pressed = False
 
@@ -895,42 +992,8 @@ class InvisibleButton:
         pass
 
 
-def run(screen=None, W=None, H=None, progress_cb=None):
-    global MIXER_OK
-
-    if screen is None:
-        pygame.mixer.pre_init(44100, -16, 2, 512)
-        pygame.display.init()
-        pygame.font.init()
-        try:
-            pygame.mixer.init()
-            MIXER_OK = True
-        except Exception as e:
-            print("Aviso: mixer não inicializou:", e)
-            MIXER_OK = False
-        info = pygame.display.Info()
-        W, H = info.current_w, info.current_h
-        screen = pygame.display.set_mode(
-            (W, H),
-            pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
-            vsync=1,
-        )
-        pygame.display.set_caption("Restaurant Simulator - Game")
-    else:
-        try:
-            if not pygame.mixer.get_init():
-                pygame.mixer.init()
-            MIXER_OK = True
-        except Exception:
-            MIXER_OK = False
-
-    def report(p, msg=None):
-        if progress_cb:
-            progress_cb(p, msg)
-
-    report(0.05, "Loading questions...")
-    start_background_music()
-    report(0.15, "Preparing layout...")
+def build_game_state(screen, W, H):
+    dbg("build_game_state() iniciado. W =", W, "H =", H)
 
     state = {
         "W": W,
@@ -980,328 +1043,340 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         "ms_score_rect": None,
     }
 
-    def set_serving_background(customer_image_path):
-        w, h = state["W"], state["H"]
-        chosen = None
+    dbg("[1] customer.png")
+    state["customer_bg"], state["cust_rect"], _, _ = fit_image_cover("customer.png", W, H)
 
-        if customer_image_path:
-            full = os.path.join(ASSETS_DIR, customer_image_path)
-            if os.path.exists(full):
-                chosen = customer_image_path
+    dbg("[2] background_serving.png")
+    state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(CUSTOMER_FALLBACK, W, H)
+    state["serving_current"] = CUSTOMER_FALLBACK
 
-        if chosen is None:
-            chosen = CUSTOMER_FALLBACK
+    dbg("[3] what_do_you_serve.png")
+    wds_pil = Image.open(os.path.join(ASSETS_DIR, "what_do_you_serve.png")).convert("RGBA")
+    max_w = int(W * (1 - 2 * MARGIN_X))
+    max_h = int(H * (1 - 2 * MARGIN_Y))
+    ratio = min(max_w / wds_pil.width, max_h / wds_pil.height)
+    target_w = int(wds_pil.width * ratio)
+    target_h = int(wds_pil.height * ratio)
+    wds_pil = wds_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
+    state["wds_img"] = pygame.image.fromstring(wds_pil.tobytes(), wds_pil.size, "RGBA").convert_alpha()
 
-        if state.get("serving_current") == chosen and state["serving_bg"] is not None:
-            return
+    state["WDS_W_PX"] = state["wds_img"].get_width()
+    state["WDS_H_PX"] = state["wds_img"].get_height()
 
-        state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(chosen, w, h)
-        state["serving_current"] = chosen
+    state["wds_speech_rect"] = pygame.Rect(
+        int(state["WDS_W_PX"] * WDS_SPEECH_X0),
+        int(state["WDS_H_PX"] * WDS_SPEECH_Y0),
+        int(state["WDS_W_PX"] * (WDS_SPEECH_X1 - WDS_SPEECH_X0)),
+        int(state["WDS_H_PX"] * (WDS_SPEECH_Y1 - WDS_SPEECH_Y0))
+    )
 
-    def rebuild_layout():
-        w, h = state["W"], state["H"]
+    state["wds_box_rect"] = pygame.Rect(
+        int(state["WDS_W_PX"] * WDS_BOX_X0),
+        int(state["WDS_H_PX"] * WDS_BOX_Y0),
+        int(state["WDS_W_PX"] * (WDS_BOX_X1 - WDS_BOX_X0)),
+        int(state["WDS_H_PX"] * (WDS_BOX_Y1 - WDS_BOX_Y0))
+    )
 
-        state["customer_bg"], state["cust_rect"], _, _ = fit_image_cover("customer.png", w, h)
+    dbg("[4] ingredients.png")
+    ing_pil = Image.open(os.path.join(ASSETS_DIR, "ingredients.png")).convert("RGBA")
+    max_w = int(W * (1 - 2 * MARGIN_X))
+    max_h = int(H * (1 - 2 * MARGIN_Y))
+    ratio = min(max_w / ing_pil.width, max_h / ing_pil.height)
+    modal_w = int(ing_pil.width * ratio)
+    modal_h = int(ing_pil.height * ratio)
+    ing_pil = ing_pil.resize((modal_w, modal_h), Image.Resampling.LANCZOS)
+    state["ingredients_bg"] = pygame.image.fromstring(ing_pil.tobytes(), ing_pil.size, "RGBA").convert_alpha()
+    modal_x = (W - modal_w) // 2
+    modal_y = (H - modal_h) // 2
+    state["ing_modal_rect"] = pygame.Rect(modal_x, modal_y, modal_w, modal_h)
+    state["ing_rect"] = state["ing_modal_rect"]
 
-        if state["serving_bg"] is None:
-            state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(CUSTOMER_FALLBACK, w, h)
-            state["serving_current"] = CUSTOMER_FALLBACK
-        else:
-            chosen = state["serving_current"] or CUSTOMER_FALLBACK
-            state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(chosen, w, h)
+    state["ing_title_rect"] = pygame.Rect(
+        modal_x + int(modal_w * ING_TITLE_X),
+        modal_y + int(modal_h * ING_TITLE_Y),
+        int(modal_w * ING_TITLE_W),
+        int(modal_h * ING_TITLE_H),
+    )
+    state["ing_close_rect"] = pygame.Rect(
+        modal_x + int(modal_w * ING_CLOSE_X),
+        modal_y + int(modal_h * ING_CLOSE_Y),
+        int(modal_w * ING_CLOSE_W),
+        int(modal_h * ING_CLOSE_H),
+    )
+    grid_x = modal_x + int(modal_w * ING_GRID_AREA_X)
+    grid_y = modal_y + int(modal_h * ING_GRID_AREA_Y)
+    grid_w = int(modal_w * ING_GRID_AREA_W)
+    grid_h = int(modal_h * ING_GRID_AREA_H)
+    state["ing_grid_area"] = pygame.Rect(grid_x, grid_y, grid_w, grid_h)
+    state["ing_btn_area"] = pygame.Rect(
+        modal_x + int(modal_w * ING_BTN_AREA_X),
+        modal_y + int(modal_h * ING_BTN_AREA_Y),
+        int(modal_w * ING_BTN_AREA_W),
+        int(modal_h * ING_BTN_AREA_H),
+    )
 
-        try:
-            wds_pil = Image.open(os.path.join(ASSETS_DIR, "what_do_you_serve.png")).convert("RGBA")
-            max_w = int(w * (1 - 2 * MARGIN_X))
-            max_h = int(h * (1 - 2 * MARGIN_Y))
-            ratio = min(max_w / wds_pil.width, max_h / wds_pil.height)
-            target_w = int(wds_pil.width * ratio)
-            target_h = int(wds_pil.height * ratio)
-            wds_pil = wds_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
-            state["wds_img"] = pygame.image.fromstring(wds_pil.tobytes(), wds_pil.size, "RGBA").convert_alpha()
-        except Exception:
-            state["wds_img"] = pygame.Surface((int(w * 0.5), int(h * 0.5)), pygame.SRCALPHA)
-            state["wds_img"].fill((50, 60, 110))
+    gap_x = int(grid_w * ING_GAP_X_RATIO)
+    gap_y = int(grid_h * ING_GAP_Y_RATIO)
+    cell_w = (grid_w - gap_x * (ING_GRID_COLS - 1)) // ING_GRID_COLS
+    cell_h = (grid_h - gap_y * (ING_GRID_ROWS - 1)) // ING_GRID_ROWS
 
-        state["WDS_W_PX"] = state["wds_img"].get_width()
-        state["WDS_H_PX"] = state["wds_img"].get_height()
+    ing_cells = []
+    for row in range(ING_GRID_ROWS):
+        for col in range(ING_GRID_COLS):
+            x = grid_x + col * (cell_w + gap_x)
+            y = grid_y + row * (cell_h + gap_y)
+            ing_cells.append(pygame.Rect(x, y, cell_w, cell_h))
+    state["ing_cells"] = ing_cells
 
-        state["wds_speech_rect"] = pygame.Rect(
-            int(state["WDS_W_PX"] * WDS_SPEECH_X0),
-            int(state["WDS_H_PX"] * WDS_SPEECH_Y0),
-            int(state["WDS_W_PX"] * (WDS_SPEECH_X1 - WDS_SPEECH_X0)),
-            int(state["WDS_H_PX"] * (WDS_SPEECH_Y1 - WDS_SPEECH_Y0))
+    dbg("[5] wrong.png")
+    wrong_pil = Image.open(os.path.join(ASSETS_DIR, "wrong.png")).convert("RGBA")
+    max_w = int(W * (1 - 2 * MARGIN_X))
+    max_h = int(H * (1 - 2 * MARGIN_Y))
+    ratio = min(max_w / wrong_pil.width, max_h / wrong_pil.height)
+    wr_w = int(wrong_pil.width * ratio)
+    wr_h = int(wrong_pil.height * ratio)
+    wrong_pil = wrong_pil.resize((wr_w, wr_h), Image.Resampling.LANCZOS)
+    state["wrong_bg"] = pygame.image.fromstring(wrong_pil.tobytes(), wrong_pil.size, "RGBA").convert_alpha()
+    wr_x = (W - wr_w) // 2
+    wr_y = (H - wr_h) // 2
+    state["wrong_rect"] = pygame.Rect(wr_x, wr_y, wr_w, wr_h)
+
+    panel_x = wr_x + int(wr_w * WRONG_PANEL_X0)
+    panel_y = wr_y + int(wr_h * WRONG_PANEL_Y0)
+    panel_w = int(wr_w * WRONG_PANEL_W)
+    panel_h = int(wr_h * WRONG_PANEL_H)
+    state["wrong_panel_rect"] = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+    def make_box_wrong(bx, by, bw, bh):
+        return pygame.Rect(
+            panel_x + int(panel_w * bx),
+            panel_y + int(panel_h * by),
+            int(panel_w * bw),
+            int(panel_h * bh),
+        )
+    state["wrong_wanted_rect"] = make_box_wrong(WRONG_WANTED_X, WRONG_WANTED_Y, WRONG_WANTED_W, WRONG_WANTED_H)
+    state["wrong_served_rect"] = make_box_wrong(WRONG_SERVED_X, WRONG_SERVED_Y, WRONG_SERVED_W, WRONG_SERVED_H)
+    state["wrong_just_rect"] = make_box_wrong(WRONG_JUST_X, WRONG_JUST_Y, WRONG_JUST_W, WRONG_JUST_H)
+
+    dbg("[6] correct.png")
+    correct_pil = Image.open(os.path.join(ASSETS_DIR, "correct.png")).convert("RGBA")
+    max_w = int(W * (1 - 2 * MARGIN_X))
+    max_h = int(H * (1 - 2 * MARGIN_Y))
+    ratio = min(max_w / correct_pil.width, max_h / correct_pil.height)
+    cr_w = int(correct_pil.width * ratio)
+    cr_h = int(correct_pil.height * ratio)
+    correct_pil = correct_pil.resize((cr_w, cr_h), Image.Resampling.LANCZOS)
+    state["correct_bg"] = pygame.image.fromstring(correct_pil.tobytes(), correct_pil.size, "RGBA").convert_alpha()
+    cr_x = (W - cr_w) // 2
+    cr_y = (H - cr_h) // 2
+    state["correct_rect"] = pygame.Rect(cr_x, cr_y, cr_w, cr_h)
+
+    cpanel_x = cr_x + int(cr_w * CORRECT_PANEL_X0)
+    cpanel_y = cr_y + int(cr_h * CORRECT_PANEL_Y0)
+    cpanel_w = int(cr_w * CORRECT_PANEL_W)
+    cpanel_h = int(cr_h * CORRECT_PANEL_H)
+    state["correct_panel_rect"] = pygame.Rect(cpanel_x, cpanel_y, cpanel_w, cpanel_h)
+
+    def make_box_correct(bx, by, bw, bh):
+        return pygame.Rect(
+            cpanel_x + int(cpanel_w * bx),
+            cpanel_y + int(cpanel_h * by),
+            int(cpanel_w * bw),
+            int(cpanel_h * bh),
+        )
+    state["correct_text_rect"] = make_box_correct(CORRECT_TEXT_X, CORRECT_TEXT_Y, CORRECT_TEXT_W, CORRECT_TEXT_H)
+    state["correct_btn_rect"] = make_box_correct(CORRECT_BTN_X, CORRECT_BTN_Y, CORRECT_BTN_W, CORRECT_BTN_H)
+
+    dbg("[7] completed.png")
+    comp_pil = Image.open(os.path.join(ASSETS_DIR, "completed.png")).convert("RGBA")
+    max_w = int(W * (1 - 2 * MARGIN_X))
+    max_h = int(H * (1 - 2 * MARGIN_Y))
+    ratio = min(max_w / comp_pil.width, max_h / comp_pil.height)
+    cp_w = int(comp_pil.width * ratio)
+    cp_h = int(comp_pil.height * ratio)
+    comp_pil = comp_pil.resize((cp_w, cp_h), Image.Resampling.LANCZOS)
+    state["completed_bg"] = pygame.image.fromstring(comp_pil.tobytes(), comp_pil.size, "RGBA").convert_alpha()
+    cp_x = (W - cp_w) // 2
+    cp_y = (H - cp_h) // 2
+    state["completed_rect"] = pygame.Rect(cp_x, cp_y, cp_w, cp_h)
+
+    panel_x = cp_x + int(cp_w * COMPLETED_PANEL_X0)
+    panel_y = cp_y + int(cp_h * COMPLETED_PANEL_Y0)
+    panel_w = int(cp_w * COMPLETED_PANEL_W)
+    panel_h = int(cp_h * COMPLETED_PANEL_H)
+    state["completed_panel_rect"] = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+
+    def make_box_comp(bx, by, bw, bh):
+        return pygame.Rect(
+            panel_x + int(panel_w * bx),
+            panel_y + int(panel_h * by),
+            int(panel_w * bw),
+            int(panel_h * bh),
         )
 
-        state["wds_box_rect"] = pygame.Rect(
-            int(state["WDS_W_PX"] * WDS_BOX_X0),
-            int(state["WDS_H_PX"] * WDS_BOX_Y0),
-            int(state["WDS_W_PX"] * (WDS_BOX_X1 - WDS_BOX_X0)),
-            int(state["WDS_H_PX"] * (WDS_BOX_Y1 - WDS_BOX_Y0))
+    state["completed_leftbox_rect"] = make_box_comp(
+        COMPLETED_LEFTBOX_X, COMPLETED_LEFTBOX_Y,
+        COMPLETED_LEFTBOX_W, COMPLETED_LEFTBOX_H
+    )
+    state["completed_rightbox_rect"] = make_box_comp(
+        COMPLETED_RIGHTBOX_X, COMPLETED_RIGHTBOX_Y,
+        COMPLETED_RIGHTBOX_W, COMPLETED_RIGHTBOX_H
+    )
+
+    lines_rects = []
+    values_rects = []
+    for ly in [COMPLETED_LINE1_Y, COMPLETED_LINE2_Y, COMPLETED_LINE3_Y]:
+        lines_rects.append(make_box_comp(COMPLETED_LINE_X, ly, COMPLETED_LINE_W, COMPLETED_LINE_H))
+        values_rects.append(make_box_comp(COMPLETED_VALUE_X, ly, COMPLETED_VALUE_W, COMPLETED_LINE_H))
+    state["completed_lines_rects"] = lines_rects
+    state["completed_values_rects"] = values_rects
+
+    state["completed_btn_play_rect"] = make_box_comp(
+        COMPLETED_BTN_PLAY_X, COMPLETED_BTN_PLAY_Y,
+        COMPLETED_BTN_PLAY_W, COMPLETED_BTN_PLAY_H
+    )
+    state["completed_btn_menu_rect"] = make_box_comp(
+        COMPLETED_BTN_MENU_X, COMPLETED_BTN_MENU_Y,
+        COMPLETED_BTN_MENU_W, COMPLETED_BTN_MENU_H
+    )
+
+    dbg("[8] money_score.png")
+    ms_img = get_money_score_image("money_score.png")
+    state["money_score_img"] = ms_img
+    if ms_img is not None:
+        img_w = int(W * MS_SIZE_RATIO)
+        ratio = img_w / ms_img.get_width()
+        img_h = int(ms_img.get_height() * ratio)
+        scaled = pygame.transform.smoothscale(ms_img, (img_w, img_h))
+        scaled.set_alpha(MS_IMG_ALPHA)
+        state["money_score_img"] = scaled
+
+        ms_x = W - img_w - int(W * MS_MARGIN_RIGHT)
+        ms_y = int(H * MS_MARGIN_TOP)
+        state["ms_rect"] = pygame.Rect(ms_x, ms_y, img_w, img_h)
+        state["ms_money_rect"] = pygame.Rect(
+            ms_x + int(img_w * MS_MONEY_X),
+            ms_y + int(img_h * MS_MONEY_Y),
+            int(img_w * MS_MONEY_W),
+            int(img_h * MS_MONEY_H),
         )
+        state["ms_score_rect"] = pygame.Rect(
+            ms_x + int(img_w * MS_SCORE_X),
+            ms_y + int(img_h * MS_SCORE_Y),
+            int(img_w * MS_SCORE_W),
+            int(img_h * MS_SCORE_H),
+        )
+    else:
+        state["ms_rect"] = None
+        state["ms_money_rect"] = None
+        state["ms_score_rect"] = None
 
-        ing_pil = Image.open(os.path.join(ASSETS_DIR, "ingredients.png")).convert("RGBA")
-        max_w = int(w * (1 - 2 * MARGIN_X))
-        max_h = int(h * (1 - 2 * MARGIN_Y))
-        ratio = min(max_w / ing_pil.width, max_h / ing_pil.height)
-        modal_w = int(ing_pil.width * ratio)
-        modal_h = int(ing_pil.height * ratio)
-        ing_pil = ing_pil.resize((modal_w, modal_h), Image.Resampling.LANCZOS)
-        ing_surface = pygame.image.fromstring(ing_pil.tobytes(), ing_pil.size, "RGBA").convert_alpha()
-        state["ingredients_bg"] = ing_surface
-        modal_x = (w - modal_w) // 2
-        modal_y = (h - modal_h) // 2
-        state["ing_modal_rect"] = pygame.Rect(modal_x, modal_y, modal_w, modal_h)
-        state["ing_rect"] = state["ing_modal_rect"]
+    dbg("[9] fonts")
+    state["fonts"] = {
+        "answer": load_font(int(state["WDS_H_PX"] * 0.035), bold=False),
+        "ui": load_font(int(H * 0.028), bold=False),
+        "feedback": load_font(int(H * 0.032), bold=False),
+        "ing_name": load_font(int(modal_h * 0.022), bold=False),
+        "end": load_font(int(H * 0.06), bold=False),
+        "question": load_font(int(state["WDS_H_PX"] * 0.040), bold=False),
+        "wrong": load_font(int(state["WDS_H_PX"] * 0.034), bold=False),
+        "wrong_just": load_font(int(state["WDS_H_PX"] * 0.030), bold=False),
+        "ing_title": load_font(int(modal_h * 0.045), bold=False),
+        "correct_text": load_font(int(state["WDS_H_PX"] * 0.038), bold=False),
+        "correct_btn": load_font(int(state["WDS_H_PX"] * 0.036), bold=False),
+        "completed_label": load_font(int(H * 0.032), bold=False),
+        "completed_value": load_font(int(H * 0.032), bold=False),
+        "rank": load_font(int(H * 0.045), bold=False),
+        "money_score": load_font(max(12, int(img_h * 0.16)), bold=True) if ms_img is not None else load_font(16, bold=True),
+    }
 
-        title_x = modal_x + int(modal_w * ING_TITLE_X)
-        title_y = modal_y + int(modal_h * ING_TITLE_Y)
-        title_w = int(modal_w * ING_TITLE_W)
-        title_h = int(modal_h * ING_TITLE_H)
-        state["ing_title_rect"] = pygame.Rect(title_x, title_y, title_w, title_h)
-
-        close_x = modal_x + int(modal_w * ING_CLOSE_X)
-        close_y = modal_y + int(modal_h * ING_CLOSE_Y)
-        close_w = int(modal_w * ING_CLOSE_W)
-        close_h = int(modal_h * ING_CLOSE_H)
-        state["ing_close_rect"] = pygame.Rect(close_x, close_y, close_w, close_h)
-
-        grid_x = modal_x + int(modal_w * ING_GRID_AREA_X)
-        grid_y = modal_y + int(modal_h * ING_GRID_AREA_Y)
-        grid_w = int(modal_w * ING_GRID_AREA_W)
-        grid_h = int(modal_h * ING_GRID_AREA_H)
-        state["ing_grid_area"] = pygame.Rect(grid_x, grid_y, grid_w, grid_h)
-
-        btn_x = modal_x + int(modal_w * ING_BTN_AREA_X)
-        btn_y = modal_y + int(modal_h * ING_BTN_AREA_Y)
-        btn_w = int(modal_w * ING_BTN_AREA_W)
-        btn_h = int(modal_h * ING_BTN_AREA_H)
-        state["ing_btn_area"] = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
-
-        gap_x = int(grid_w * ING_GAP_X_RATIO)
-        gap_y = int(grid_h * ING_GAP_Y_RATIO)
-        cell_w = (grid_w - gap_x * (ING_GRID_COLS - 1)) // ING_GRID_COLS
-        cell_h = (grid_h - gap_y * (ING_GRID_ROWS - 1)) // ING_GRID_ROWS
-
-        ing_cells = []
-        for row in range(ING_GRID_ROWS):
-            for col in range(ING_GRID_COLS):
-                x = grid_x + col * (cell_w + gap_x)
-                y = grid_y + row * (cell_h + gap_y)
-                ing_cells.append(pygame.Rect(x, y, cell_w, cell_h))
-        state["ing_cells"] = ing_cells
-
-        try:
-            wrong_pil = Image.open(os.path.join(ASSETS_DIR, "wrong.png")).convert("RGBA")
-            max_w = int(w * (1 - 2 * MARGIN_X))
-            max_h = int(h * (1 - 2 * MARGIN_Y))
-            ratio = min(max_w / wrong_pil.width, max_h / wrong_pil.height)
-            wr_w = int(wrong_pil.width * ratio)
-            wr_h = int(wrong_pil.height * ratio)
-            wrong_pil = wrong_pil.resize((wr_w, wr_h), Image.Resampling.LANCZOS)
-            wr_surface = pygame.image.fromstring(wrong_pil.tobytes(), wrong_pil.size, "RGBA").convert_alpha()
-            state["wrong_bg"] = wr_surface
-            wr_x = (w - wr_w) // 2
-            wr_y = (h - wr_h) // 2
-            state["wrong_rect"] = pygame.Rect(wr_x, wr_y, wr_w, wr_h)
-
-            panel_x = wr_x + int(wr_w * WRONG_PANEL_X0)
-            panel_y = wr_y + int(wr_h * WRONG_PANEL_Y0)
-            panel_w = int(wr_w * WRONG_PANEL_W)
-            panel_h = int(wr_h * WRONG_PANEL_H)
-            state["wrong_panel_rect"] = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
-
-            def make_box_wrong(bx, by, bw, bh):
-                return pygame.Rect(
-                    panel_x + int(panel_w * bx),
-                    panel_y + int(panel_h * by),
-                    int(panel_w * bw),
-                    int(panel_h * bh),
-                )
-            state["wrong_wanted_rect"] = make_box_wrong(WRONG_WANTED_X, WRONG_WANTED_Y, WRONG_WANTED_W, WRONG_WANTED_H)
-            state["wrong_served_rect"] = make_box_wrong(WRONG_SERVED_X, WRONG_SERVED_Y, WRONG_SERVED_W, WRONG_SERVED_H)
-            state["wrong_just_rect"] = make_box_wrong(WRONG_JUST_X, WRONG_JUST_Y, WRONG_JUST_W, WRONG_JUST_H)
-        except Exception:
-            state["wrong_bg"] = None
-            state["wrong_rect"] = None
-            state["wrong_panel_rect"] = None
-            state["wrong_wanted_rect"] = None
-            state["wrong_served_rect"] = None
-            state["wrong_just_rect"] = None
-
-        try:
-            correct_pil = Image.open(os.path.join(ASSETS_DIR, "correct.png")).convert("RGBA")
-            max_w = int(w * (1 - 2 * MARGIN_X))
-            max_h = int(h * (1 - 2 * MARGIN_Y))
-            ratio = min(max_w / correct_pil.width, max_h / correct_pil.height)
-            cr_w = int(correct_pil.width * ratio)
-            cr_h = int(correct_pil.height * ratio)
-            correct_pil = correct_pil.resize((cr_w, cr_h), Image.Resampling.LANCZOS)
-            cr_surface = pygame.image.fromstring(correct_pil.tobytes(), correct_pil.size, "RGBA").convert_alpha()
-            state["correct_bg"] = cr_surface
-            cr_x = (w - cr_w) // 2
-            cr_y = (h - cr_h) // 2
-            state["correct_rect"] = pygame.Rect(cr_x, cr_y, cr_w, cr_h)
-
-            cpanel_x = cr_x + int(cr_w * CORRECT_PANEL_X0)
-            cpanel_y = cr_y + int(cr_h * CORRECT_PANEL_Y0)
-            cpanel_w = int(cr_w * CORRECT_PANEL_W)
-            cpanel_h = int(cr_h * CORRECT_PANEL_H)
-            state["correct_panel_rect"] = pygame.Rect(cpanel_x, cpanel_y, cpanel_w, cpanel_h)
-
-            def make_box_correct(bx, by, bw, bh):
-                return pygame.Rect(
-                    cpanel_x + int(cpanel_w * bx),
-                    cpanel_y + int(cpanel_h * by),
-                    int(cpanel_w * bw),
-                    int(cpanel_h * bh),
-                )
-            state["correct_text_rect"] = make_box_correct(CORRECT_TEXT_X, CORRECT_TEXT_Y, CORRECT_TEXT_W, CORRECT_TEXT_H)
-            state["correct_btn_rect"] = make_box_correct(CORRECT_BTN_X, CORRECT_BTN_Y, CORRECT_BTN_W, CORRECT_BTN_H)
-        except Exception:
-            state["correct_bg"] = None
-            state["correct_rect"] = None
-            state["correct_panel_rect"] = None
-            state["correct_text_rect"] = None
-            state["correct_btn_rect"] = None
-
-        try:
-            comp_pil = Image.open(os.path.join(ASSETS_DIR, "completed.png")).convert("RGBA")
-            max_w = int(w * (1 - 2 * MARGIN_X))
-            max_h = int(h * (1 - 2 * MARGIN_Y))
-            ratio = min(max_w / comp_pil.width, max_h / comp_pil.height)
-            cp_w = int(comp_pil.width * ratio)
-            cp_h = int(comp_pil.height * ratio)
-            comp_pil = comp_pil.resize((cp_w, cp_h), Image.Resampling.LANCZOS)
-            cp_surface = pygame.image.fromstring(comp_pil.tobytes(), comp_pil.size, "RGBA").convert_alpha()
-            state["completed_bg"] = cp_surface
-            cp_x = (w - cp_w) // 2
-            cp_y = (h - cp_h) // 2
-            state["completed_rect"] = pygame.Rect(cp_x, cp_y, cp_w, cp_h)
-
-            panel_x = cp_x + int(cp_w * COMPLETED_PANEL_X0)
-            panel_y = cp_y + int(cp_h * COMPLETED_PANEL_Y0)
-            panel_w = int(cp_w * COMPLETED_PANEL_W)
-            panel_h = int(cp_h * COMPLETED_PANEL_H)
-            state["completed_panel_rect"] = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
-
-            def make_box_comp(bx, by, bw, bh):
-                return pygame.Rect(
-                    panel_x + int(panel_w * bx),
-                    panel_y + int(panel_h * by),
-                    int(panel_w * bw),
-                    int(panel_h * bh),
-                )
-
-            state["completed_leftbox_rect"] = make_box_comp(
-                COMPLETED_LEFTBOX_X, COMPLETED_LEFTBOX_Y,
-                COMPLETED_LEFTBOX_W, COMPLETED_LEFTBOX_H
-            )
-            state["completed_rightbox_rect"] = make_box_comp(
-                COMPLETED_RIGHTBOX_X, COMPLETED_RIGHTBOX_Y,
-                COMPLETED_RIGHTBOX_W, COMPLETED_RIGHTBOX_H
-            )
-
-            lines_rects = []
-            values_rects = []
-            for i, ly in enumerate([COMPLETED_LINE1_Y, COMPLETED_LINE2_Y, COMPLETED_LINE3_Y]):
-                lines_rects.append(make_box_comp(
-                    COMPLETED_LINE_X, ly,
-                    COMPLETED_LINE_W, COMPLETED_LINE_H
-                ))
-                values_rects.append(make_box_comp(
-                    COMPLETED_VALUE_X, ly,
-                    COMPLETED_VALUE_W, COMPLETED_LINE_H
-                ))
-            state["completed_lines_rects"] = lines_rects
-            state["completed_values_rects"] = values_rects
-
-            state["completed_btn_play_rect"] = make_box_comp(
-                COMPLETED_BTN_PLAY_X, COMPLETED_BTN_PLAY_Y,
-                COMPLETED_BTN_PLAY_W, COMPLETED_BTN_PLAY_H
-            )
-            state["completed_btn_menu_rect"] = make_box_comp(
-                COMPLETED_BTN_MENU_X, COMPLETED_BTN_MENU_Y,
-                COMPLETED_BTN_MENU_W, COMPLETED_BTN_MENU_H
-            )
-        except Exception:
-            state["completed_bg"] = None
-            state["completed_rect"] = None
-            state["completed_panel_rect"] = None
-            state["completed_leftbox_rect"] = None
-            state["completed_rightbox_rect"] = None
-            state["completed_lines_rects"] = []
-            state["completed_values_rects"] = []
-            state["completed_btn_play_rect"] = None
-            state["completed_btn_menu_rect"] = None
-
-        ms_img = get_money_score_image("money_score.png")
-        state["money_score_img"] = ms_img
-        if ms_img is not None:
-            img_w = int(w * MS_SIZE_RATIO)
-            ratio = img_w / ms_img.get_width()
-            img_h = int(ms_img.get_height() * ratio)
-            scaled = pygame.transform.smoothscale(ms_img, (img_w, img_h))
-            scaled.set_alpha(MS_IMG_ALPHA)
-            state["money_score_img"] = scaled
-
-            ms_x = w - img_w - int(w * MS_MARGIN_RIGHT)
-            ms_y = int(h * MS_MARGIN_TOP)
-            state["ms_rect"] = pygame.Rect(ms_x, ms_y, img_w, img_h)
-
-            state["ms_money_rect"] = pygame.Rect(
-                ms_x + int(img_w * MS_MONEY_X),
-                ms_y + int(img_h * MS_MONEY_Y),
-                int(img_w * MS_MONEY_W),
-                int(img_h * MS_MONEY_H),
-            )
-            state["ms_score_rect"] = pygame.Rect(
-                ms_x + int(img_w * MS_SCORE_X),
-                ms_y + int(img_h * MS_SCORE_Y),
-                int(img_w * MS_SCORE_W),
-                int(img_h * MS_SCORE_H),
-            )
-        else:
-            state["ms_rect"] = None
-            state["ms_money_rect"] = None
-            state["ms_score_rect"] = None
-
-        state["fonts"] = {
-            "answer": load_font(int(state["WDS_H_PX"] * 0.035), bold=False),
-            "ui": load_font(int(h * 0.028), bold=False),
-            "feedback": load_font(int(h * 0.032), bold=False),
-            "ing_name": load_font(int(modal_h * 0.022), bold=False),
-            "end": load_font(int(h * 0.06), bold=False),
-            "question": load_font(int(state["WDS_H_PX"] * 0.040), bold=False),
-            "wrong": load_font(int(state["WDS_H_PX"] * 0.034), bold=False),
-            "wrong_just": load_font(int(state["WDS_H_PX"] * 0.030), bold=False),
-            "ing_title": load_font(int(modal_h * 0.045), bold=False),
-            "correct_text": load_font(int(state["WDS_H_PX"] * 0.038), bold=False),
-            "correct_btn": load_font(int(state["WDS_H_PX"] * 0.036), bold=False),
-            "completed_label": load_font(int(h * 0.032), bold=False),
-            "completed_value": load_font(int(h * 0.032), bold=False),
-            "rank": load_font(int(h * 0.045), bold=False),
-            "money_score": load_font(max(12, int(img_h * 0.16)), bold=True) if ms_img is not None else load_font(16, bold=True),
-        }
-
-    report(0.25, "Loading interface...")
-    rebuild_layout()
-
-    backdrop = pygame.Surface((state["W"], state["H"]), pygame.SRCALPHA)
-    backdrop.fill((0, 0, 0, 220))
-    backdrop_base_alpha = 220
-
-    report(0.55, "Loading questions...")
+    dbg("[10] questions.json")
     questions = load_questions()
     random.shuffle(questions)
+
+    dbg("[11] primeira pergunta")
+    current_question = questions[0]
+
+    if current_question.get("customer_image"):
+        full = os.path.join(ASSETS_DIR, current_question["customer_image"])
+        if os.path.exists(full):
+            state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(
+                current_question["customer_image"], W, H
+            )
+            state["serving_current"] = current_question["customer_image"]
+
+    wds_rect = pygame.Rect(
+        (W - state["WDS_W_PX"]) // 2,
+        int(H * WDS_CENTER_Y) - state["WDS_H_PX"] // 2,
+        state["WDS_W_PX"],
+        state["WDS_H_PX"],
+    )
+    box_rel = state["wds_box_rect"]
+    box_abs_x = wds_rect.x + box_rel.x
+    box_abs_y = wds_rect.y + box_rel.y
+    box_w = box_rel.width
+    box_h = box_rel.height
+
+    cells = []
+    for row in range(2):
+        for col in range(2):
+            x = box_abs_x + int(box_w * BTN_IN_BOX_X[col])
+            y = box_abs_y + int(box_h * BTN_IN_BOX_Y[row])
+            cw = int(box_w * BTN_IN_BOX_W)
+            ch = int(box_h * BTN_IN_BOX_H)
+            cells.append(pygame.Rect(x, y, cw, ch))
+
+    options = list(current_question["options"])
+    option_images = list(current_question.get("option_images", []))
+    correct_idx = current_question["correct"]
+
+    perm = list(range(len(options)))
+    random.shuffle(perm)
+    shuffled_options = [options[i] for i in perm]
+    shuffled_images = [
+        option_images[i] if i < len(option_images) else None
+        for i in perm
+    ]
+    new_correct = perm.index(correct_idx)
+
+    current_question["options"] = shuffled_options
+    current_question["option_images"] = shuffled_images
+    current_question["correct"] = new_correct
+
+    answer_buttons = []
+    for i, opt in enumerate(shuffled_options):
+        if i >= len(cells):
+            break
+        dish_img_path = shuffled_images[i] if i < len(shuffled_images) else None
+        answer_buttons.append(
+            AnswerButton(cells[i], opt, state["fonts"]["answer"], i, None, dish_img_path)
+        )
+
+    dbg("build_game_state() finalizado")
+
+    return {
+        "state": state,
+        "questions": questions,
+        "current_index": 0,
+        "current_question": current_question,
+        "answer_buttons": answer_buttons,
+    }
+
+
+def run_loop(screen, W, H, bundle):
+    dbg("run_loop() iniciado")
+
+    state = bundle["state"]
+    questions = bundle["questions"]
+    current_index = bundle["current_index"]
+    current_question = bundle["current_question"]
+    answer_buttons = bundle["answer_buttons"]
 
     score = 0
     money = 0
     happy_customers = 0
     served_customers = 0
-    current_index = 0
-    current_question = None
-    answer_buttons = []
+
     feedback = ""
     feedback_color = (255, 255, 255)
     answered = False
@@ -1309,13 +1384,15 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
     FADE_SPEED = 6.0
 
+    backdrop = pygame.Surface((state["W"], state["H"]), pygame.SRCALPHA)
+    backdrop.fill((0, 0, 0))
+    backdrop_base_alpha = 220
+
     modal_open = False
     modal_alpha = 0.0
     modal_state = "closed"
 
     ingredient_boxes = []
-    plate_feedback = ""
-    plate_feedback_color = (255, 255, 255)
     plate_evaluated = False
 
     confirm_button = None
@@ -1338,15 +1415,15 @@ def run(screen=None, W=None, H=None, progress_cb=None):
     play_again_button = None
     main_menu_button = None
 
-    wds_phase = "idle"
-    wds_y = WDS_START_Y
+    wds_phase = "settled"
+    wds_y = WDS_CENTER_Y
     wds_bounce_t = 0.0
 
-    def start_wds_animation():
-        nonlocal wds_phase, wds_y, wds_bounce_t
-        wds_phase = "entering"
-        wds_y = WDS_START_Y
-        wds_bounce_t = 0.0
+    # Cache de superfícies do modal (criadas uma vez por abertura)
+    ing_surf_cache = None
+    wrong_surf_cache = None
+    correct_surf_cache = None
+    completed_surf_cache = None
 
     def get_bounce_offset():
         if wds_phase != "settled":
@@ -1382,11 +1459,11 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         return cells
 
     def open_modal():
-        nonlocal modal_open, modal_alpha, modal_state, ingredient_boxes, plate_feedback, plate_evaluated, confirm_button, close_button
+        nonlocal modal_open, modal_alpha, modal_state, ingredient_boxes, plate_evaluated, confirm_button, close_button
+        nonlocal ing_surf_cache
         modal_open = True
         modal_alpha = 0.0
         modal_state = "fading_in"
-        plate_feedback = ""
         plate_evaluated = False
         ingredient_boxes = []
         for i in range(9):
@@ -1402,6 +1479,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             )
         confirm_button = ConfirmButton(state["ing_btn_area"], on_confirm)
         close_button = CloseButton(state["ing_close_rect"], close_modal)
+        ing_surf_cache = state["ingredients_bg"].copy()
 
     def close_modal():
         nonlocal modal_state
@@ -1414,7 +1492,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             evaluate_plate()
 
     def evaluate_plate():
-        nonlocal plate_evaluated, plate_feedback, plate_feedback_color
+        nonlocal plate_evaluated
         nonlocal score, money, happy_customers
 
         correct_set = set(current_question["correct_ingredients"])
@@ -1451,10 +1529,12 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
     def open_wrong_modal(selected_idx):
         nonlocal wrong_modal_open, wrong_modal_alpha, wrong_modal_state, wrong_selected_index
+        nonlocal wrong_surf_cache
         wrong_modal_open = True
         wrong_modal_alpha = 0.0
         wrong_modal_state = "fading_in"
         wrong_selected_index = selected_idx
+        wrong_surf_cache = state["wrong_bg"].copy()
         play_sound("wrong.ogg")
 
     def close_wrong_modal():
@@ -1464,10 +1544,12 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
     def open_correct_modal(points):
         nonlocal correct_modal_open, correct_modal_alpha, correct_modal_state, correct_points
+        nonlocal correct_surf_cache
         correct_modal_open = True
         correct_modal_alpha = 0.0
         correct_modal_state = "fading_in"
         correct_points = points
+        correct_surf_cache = state["correct_bg"].copy()
         play_sound("correct.ogg")
 
     def close_correct_modal():
@@ -1477,12 +1559,13 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
     def open_completed_modal():
         nonlocal completed_modal_open, completed_modal_alpha, completed_modal_state
-        nonlocal play_again_button, main_menu_button
+        nonlocal play_again_button, main_menu_button, completed_surf_cache
         completed_modal_open = True
         completed_modal_alpha = 0.0
         completed_modal_state = "fading_in"
         play_again_button = InvisibleButton(state["completed_btn_play_rect"], on_play_again)
         main_menu_button = InvisibleButton(state["completed_btn_menu_rect"], on_main_menu)
+        completed_surf_cache = state["completed_bg"].copy()
 
     def close_completed_modal():
         nonlocal completed_modal_state
@@ -1490,7 +1573,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             completed_modal_state = "fading_out"
 
     def on_play_again():
-        nonlocal score, money, happy_customers, served_customers, current_index
+        nonlocal score, money, happy_customers, served_customers, current_index, current_question, answer_buttons
         score = 0
         money = 0
         happy_customers = 0
@@ -1516,8 +1599,16 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         answer_was_correct = False
         feedback = ""
 
-        customer_img = current_question.get("customer_image")
-        set_serving_background(customer_img)
+        if current_question.get("customer_image"):
+            full = os.path.join(ASSETS_DIR, current_question["customer_image"])
+            if os.path.exists(full):
+                state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(
+                    current_question["customer_image"], W, H
+                )
+                state["serving_current"] = current_question["customer_image"]
+        else:
+            state["serving_bg"], state["serve_rect"], _, _ = fit_image_cover(CUSTOMER_FALLBACK, W, H)
+            state["serving_current"] = CUSTOMER_FALLBACK
 
         cells = compute_answer_cells()
 
@@ -1525,18 +1616,13 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         option_images = list(current_question.get("option_images", []))
         correct_idx = current_question["correct"]
 
-        n = len(options)
-        perm = list(range(n))
+        perm = list(range(len(options)))
         random.shuffle(perm)
-
         shuffled_options = [options[i] for i in perm]
-        shuffled_images = []
-        for i in perm:
-            if i < len(option_images):
-                shuffled_images.append(option_images[i])
-            else:
-                shuffled_images.append(None)
-
+        shuffled_images = [
+            option_images[i] if i < len(option_images) else None
+            for i in perm
+        ]
         new_correct = perm.index(correct_idx)
 
         current_question["options"] = shuffled_options
@@ -1552,7 +1638,10 @@ def run(screen=None, W=None, H=None, progress_cb=None):
                 AnswerButton(cells[i], opt, state["fonts"]["answer"], i, on_answer, dish_img_path)
             )
 
-        start_wds_animation()
+        wds_phase = "entering"
+        nonlocal wds_y, wds_bounce_t
+        wds_y = WDS_START_Y
+        wds_bounce_t = 0.0
 
     def on_answer(index):
         nonlocal score, money, answered, feedback, feedback_color, answer_was_correct, served_customers
@@ -1588,62 +1677,22 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         else:
             load_question(current_index)
 
-    pygame.event.pump()
-    if pygame.display.get_surface() is not None:
-        pygame.display.flip()
+    for btn in answer_buttons:
+        btn.callback = on_answer
 
-    report(0.75, "Starting...")
-    load_question(0)
-    report(1.0, "Ready!")
+    # Otimização: rastrear última posição do mouse para só atualizar hover quando muda
+    last_mouse_pos = (-1, -1)
 
     running = True
     while running:
         dt = clock.tick(60) / 1000.0
         mouse_pos = pygame.mouse.get_pos()
+        mouse_moved = (mouse_pos != last_mouse_pos)
+        last_mouse_pos = mouse_pos
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-            elif event.type == pygame.VIDEORESIZE:
-                state["W"] = event.w
-                state["H"] = event.h
-                rebuild_layout()
-                backdrop = pygame.Surface((state["W"], state["H"]), pygame.SRCALPHA)
-                backdrop.fill((0, 0, 0, 220))
-                if current_question:
-                    cells = compute_answer_cells()
-                    option_images = current_question.get("option_images", [])
-                    for i, btn in enumerate(answer_buttons):
-                        if i < len(cells):
-                            btn.rect = cells[i]
-                            btn.font = state["fonts"]["answer"]
-                            dish_img_path = option_images[i] if i < len(option_images) else None
-                            btn._build_dish_image(dish_img_path)
-                            btn._build_bg_images()
-
-                    for i, box in enumerate(ingredient_boxes):
-                        if i < len(state["ing_cells"]):
-                            box.rect = state["ing_cells"][i]
-                            box.font = state["fonts"]["ing_name"]
-                            raw = get_ingredient_image(current_question["ingredients"][i]["image"])
-                            max_w = box.rect.width - 24
-                            max_h = box.rect.height - box.font.get_height() - 30
-                            ratio = min(max_w / raw.get_width(), max_h / raw.get_height(), 1.0)
-                            new_size = (max(1, int(raw.get_width() * ratio)), max(1, int(raw.get_height() * ratio)))
-                            box.image = pygame.transform.smoothscale(raw, new_size)
-                            box.image_rect = box.image.get_rect(center=(box.rect.centerx, box.rect.centery - 10))
-                            box._build_bg_images()
-
-                    if confirm_button is not None:
-                        confirm_button = ConfirmButton(state["ing_btn_area"], on_confirm)
-                    if close_button is not None:
-                        close_button = CloseButton(state["ing_close_rect"], close_modal)
-
-                if play_again_button is not None and state["completed_btn_play_rect"] is not None:
-                    play_again_button.rect = state["completed_btn_play_rect"]
-                if main_menu_button is not None and state["completed_btn_menu_rect"] is not None:
-                    main_menu_button.rect = state["completed_btn_menu_rect"]
 
             elif event.type == pygame.KEYDOWN:
                 if completed_modal_open and completed_modal_state != "fading_out":
@@ -1673,9 +1722,9 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
             elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP) and event.button == 1:
                 if completed_modal_open and completed_modal_state != "fading_out":
-                    if play_again_button is not None:
+                    if play_again_button:
                         play_again_button.handle_event(event)
-                    if main_menu_button is not None:
+                    if main_menu_button:
                         main_menu_button.handle_event(event)
                     continue
 
@@ -1703,9 +1752,9 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
                             for box in ingredient_boxes:
                                 box.handle_event(event)
-                            if confirm_button is not None:
+                            if confirm_button:
                                 confirm_button.handle_event(event)
-                            if close_button is not None:
+                            if close_button:
                                 close_button.handle_event(event)
 
         if modal_state == "fading_in":
@@ -1717,6 +1766,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             if modal_alpha <= 0.0:
                 modal_state = "closed"
                 modal_open = False
+                ing_surf_cache = None
                 if current_question is not None and not plate_evaluated and answered and answer_was_correct:
                     plate_evaluated = True
                     open_correct_modal(0)
@@ -1730,6 +1780,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             if wrong_modal_alpha <= 0.0:
                 wrong_modal_state = "closed"
                 wrong_modal_open = False
+                wrong_surf_cache = None
                 next_question()
 
         if correct_modal_state == "fading_in":
@@ -1741,6 +1792,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             if correct_modal_alpha <= 0.0:
                 correct_modal_state = "closed"
                 correct_modal_open = False
+                correct_surf_cache = None
                 next_question()
 
         if completed_modal_state == "fading_in":
@@ -1752,6 +1804,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             if completed_modal_alpha <= 0.0:
                 completed_modal_state = "closed"
                 completed_modal_open = False
+                completed_surf_cache = None
 
         if wds_phase == "entering":
             wds_y -= WDS_SPEED * dt
@@ -1768,27 +1821,31 @@ def run(screen=None, W=None, H=None, progress_cb=None):
         if wds_phase == "settled":
             wds_bounce_t += dt
 
+        # Só recalcula as células dos botões quando a animação do wds está ativa ou mouse mudou
         if current_question is not None and not modal_open and not wrong_modal_open and not correct_modal_open and not completed_modal_open:
-            new_cells = compute_answer_cells()
-            for btn, new_rect in zip(answer_buttons, new_cells):
-                btn.rect = new_rect
+            if wds_phase != "settled" or mouse_moved:
+                new_cells = compute_answer_cells()
+                for btn, new_rect in zip(answer_buttons, new_cells):
+                    btn.rect = new_rect
 
         if not modal_open and not wrong_modal_open and not correct_modal_open and not completed_modal_open:
             if current_question and not answered:
-                for btn in answer_buttons:
-                    btn.update(mouse_pos)
+                if mouse_moved:
+                    for btn in answer_buttons:
+                        btn.update(mouse_pos)
                 if any(btn.hovered for btn in answer_buttons):
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
                 else:
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         elif modal_open and not wrong_modal_open and not correct_modal_open and not completed_modal_open:
             if modal_state == "open" and not plate_evaluated:
-                for box in ingredient_boxes:
-                    box.update(mouse_pos)
-                if confirm_button is not None:
-                    confirm_button.update(mouse_pos)
-                if close_button is not None:
-                    close_button.update(mouse_pos)
+                if mouse_moved:
+                    for box in ingredient_boxes:
+                        box.update(mouse_pos)
+                    if confirm_button:
+                        confirm_button.update(mouse_pos)
+                    if close_button:
+                        close_button.update(mouse_pos)
                 hovering = (
                     any(box.hovered for box in ingredient_boxes)
                     or (confirm_button and confirm_button.hovered)
@@ -1799,10 +1856,11 @@ def run(screen=None, W=None, H=None, progress_cb=None):
                 else:
                     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         elif completed_modal_open:
-            if play_again_button is not None:
-                play_again_button.update(mouse_pos)
-            if main_menu_button is not None:
-                main_menu_button.update(mouse_pos)
+            if mouse_moved:
+                if play_again_button:
+                    play_again_button.update(mouse_pos)
+                if main_menu_button:
+                    main_menu_button.update(mouse_pos)
             if (play_again_button and play_again_button.hovered) or (main_menu_button and main_menu_button.hovered):
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
             else:
@@ -1817,12 +1875,10 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
             if state["money_score_img"] is not None and state["ms_rect"] is not None:
                 screen.blit(state["money_score_img"], state["ms_rect"].topleft)
-
                 ms_font = state["fonts"]["money_score"]
 
                 if state["ms_money_rect"] is not None:
-                    money_str = f"${money}"
-                    money_surf = ms_font.render(money_str, True, (255, 255, 255))
+                    money_surf = ms_font.render(f"${money}", True, (255, 255, 255))
                     money_rect = state["ms_money_rect"]
                     pad_px = int(MS_TEXT_PAD_PX * (money_rect.width / 1155))
                     text_x = money_rect.right - money_surf.get_width() - pad_px
@@ -1830,8 +1886,7 @@ def run(screen=None, W=None, H=None, progress_cb=None):
                     screen.blit(money_surf, (text_x, text_y))
 
                 if state["ms_score_rect"] is not None:
-                    score_str = f"{score}"
-                    score_surf = ms_font.render(score_str, True, (255, 255, 255))
+                    score_surf = ms_font.render(f"{score}", True, (255, 255, 255))
                     score_rect = state["ms_score_rect"]
                     pad_px = int(MS_TEXT_PAD_PX * (score_rect.width / 1155))
                     text_x = score_rect.right - score_surf.get_width() - pad_px
@@ -1843,29 +1898,26 @@ def run(screen=None, W=None, H=None, progress_cb=None):
                 screen.blit(score_surf, (s_rect.x + s_rect.width - score_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03)))
                 screen.blit(money_surf, (s_rect.x + s_rect.width - money_surf.get_width() - int(s_rect.width * 0.03), s_rect.y + int(s_rect.height * 0.03) + score_surf.get_height() + 8))
 
-            wds_rect = None
-            if wds_phase != "idle":
-                wds_rect = get_wds_rect()
-                screen.blit(state["wds_img"], wds_rect.topleft)
+            wds_rect = get_wds_rect()
+            screen.blit(state["wds_img"], wds_rect.topleft)
 
-            if wds_rect is not None:
-                speech_rel = state["wds_speech_rect"]
-                speech_abs = pygame.Rect(
-                    wds_rect.x + speech_rel.x,
-                    wds_rect.y + speech_rel.y,
-                    speech_rel.width,
-                    speech_rel.height
-                )
-                q_text = current_question["question"]
-                max_text_w = speech_abs.width - 50
-                lines = wrap_text(q_text, state["fonts"]["question"], max_text_w)
-                line_h = state["fonts"]["question"].get_linesize()
-                total_h = line_h * len(lines)
-                y = speech_abs.centery - total_h // 2
-                for line in lines:
-                    surf = state["fonts"]["question"].render(line, True, (30, 30, 30))
-                    screen.blit(surf, surf.get_rect(center=(speech_abs.centerx, y + line_h // 2)))
-                    y += line_h
+            speech_rel = state["wds_speech_rect"]
+            speech_abs = pygame.Rect(
+                wds_rect.x + speech_rel.x,
+                wds_rect.y + speech_rel.y,
+                speech_rel.width,
+                speech_rel.height
+            )
+            q_text = current_question["question"]
+            max_text_w = speech_abs.width - 50
+            lines = wrap_text(q_text, state["fonts"]["question"], max_text_w)
+            line_h = state["fonts"]["question"].get_linesize()
+            total_h = line_h * len(lines)
+            y = speech_abs.centery - total_h // 2
+            for line in lines:
+                surf = state["fonts"]["question"].render(line, True, (30, 30, 30))
+                screen.blit(surf, surf.get_rect(center=(speech_abs.centerx, y + line_h // 2)))
+                y += line_h
 
             for btn in answer_buttons:
                 btn.draw(screen)
@@ -1885,13 +1937,13 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             backdrop.set_alpha(int(backdrop_base_alpha * modal_alpha))
             screen.blit(backdrop, (0, 0))
 
-            ing_surf = state["ingredients_bg"].copy()
-            ing_surf.set_alpha(int(255 * modal_alpha))
-            screen.blit(ing_surf, state["ing_modal_rect"].topleft)
+            if ing_surf_cache is not None:
+                ing_surf_cache.set_alpha(int(255 * modal_alpha))
+                screen.blit(ing_surf_cache, state["ing_modal_rect"].topleft)
 
             if modal_alpha > 0.5:
                 plate_name = current_question.get("plate_name", "")
-                title_text = f"Prepare \"{plate_name}\""
+                title_text = f'Prepare "{plate_name}"'
                 title_rect = state["ing_title_rect"]
                 title_text = truncate_with_ellipsis(title_text, state["fonts"]["ing_title"], title_rect.width)
                 title_surf = state["fonts"]["ing_title"].render(title_text, True, (255, 255, 255))
@@ -1901,10 +1953,10 @@ def run(screen=None, W=None, H=None, progress_cb=None):
                 for box in ingredient_boxes:
                     box.draw(screen)
 
-                if confirm_button is not None and not plate_evaluated:
+                if confirm_button and not plate_evaluated:
                     confirm_button.draw(screen)
 
-                if close_button is not None:
+                if close_button:
                     close_button.draw(screen)
 
                 m_rect = state["ing_modal_rect"]
@@ -1916,9 +1968,9 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             backdrop.set_alpha(int(backdrop_base_alpha * wrong_modal_alpha))
             screen.blit(backdrop, (0, 0))
 
-            wr_surf = state["wrong_bg"].copy()
-            wr_surf.set_alpha(int(255 * wrong_modal_alpha))
-            screen.blit(wr_surf, state["wrong_rect"].topleft)
+            if wrong_surf_cache is not None:
+                wrong_surf_cache.set_alpha(int(255 * wrong_modal_alpha))
+                screen.blit(wrong_surf_cache, state["wrong_rect"].topleft)
 
             if wrong_modal_alpha > 0.5:
                 if state["wrong_wanted_rect"] is not None:
@@ -1968,9 +2020,9 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             backdrop.set_alpha(int(backdrop_base_alpha * correct_modal_alpha))
             screen.blit(backdrop, (0, 0))
 
-            cr_surf = state["correct_bg"].copy()
-            cr_surf.set_alpha(int(255 * correct_modal_alpha))
-            screen.blit(cr_surf, state["correct_rect"].topleft)
+            if correct_surf_cache is not None:
+                correct_surf_cache.set_alpha(int(255 * correct_modal_alpha))
+                screen.blit(correct_surf_cache, state["correct_rect"].topleft)
 
             if correct_modal_alpha > 0.5:
                 if state["correct_text_rect"] is not None:
@@ -2007,21 +2059,13 @@ def run(screen=None, W=None, H=None, progress_cb=None):
             backdrop.set_alpha(int(backdrop_base_alpha * completed_modal_alpha))
             screen.blit(backdrop, (0, 0))
 
-            cp_surf = state["completed_bg"].copy()
-            cp_surf.set_alpha(int(255 * completed_modal_alpha))
-            screen.blit(cp_surf, state["completed_rect"].topleft)
+            if completed_surf_cache is not None:
+                completed_surf_cache.set_alpha(int(255 * completed_modal_alpha))
+                screen.blit(completed_surf_cache, state["completed_rect"].topleft)
 
             if completed_modal_alpha > 0.5:
-                labels = [
-                    "Happy customers:",
-                    "Money earned:",
-                    "Final score:",
-                ]
-                values = [
-                    str(happy_customers),
-                    f"${money}",
-                    str(score),
-                ]
+                labels = ["Happy customers:", "Money earned:", "Final score:"]
+                values = [str(happy_customers), f"${money}", str(score)]
 
                 for i in range(3):
                     if i >= len(state["completed_lines_rects"]):
@@ -2039,37 +2083,60 @@ def run(screen=None, W=None, H=None, progress_cb=None):
 
                 if state["completed_rightbox_rect"] is not None:
                     right_box = state["completed_rightbox_rect"]
-
                     rank_text, star_count = get_rank_and_stars(score)
 
                     rank_surf = state["fonts"]["rank"].render(rank_text, True, (255, 255, 255))
                     rank_rect = rank_surf.get_rect(center=(right_box.centerx, right_box.top + int(right_box.height * COMPLETED_RANK_Y_RATIO)))
                     screen.blit(rank_surf, rank_rect)
 
-                    star_img = get_star_image(star_count)
-                    if star_img is not None:
-                        max_star_w = int(right_box.width * 0.80)
-                        ratio = min(1.0, max_star_w / star_img.get_width())
-                        new_w = int(star_img.get_width() * ratio)
-                        new_h = int(star_img.get_height() * ratio)
-                        scaled = pygame.transform.smoothscale(star_img, (new_w, new_h))
+                    max_star_w = int(right_box.width * 0.80)
+                    scaled = get_star_scaled(star_count, max_star_w)
+                    if scaled is not None:
                         star_rect = scaled.get_rect(center=(right_box.centerx, right_box.top + int(right_box.height * COMPLETED_STAR_Y_RATIO)))
                         screen.blit(scaled, star_rect)
 
-                if play_again_button is not None:
+                if play_again_button:
                     play_again_button.draw(screen)
-                if main_menu_button is not None:
+                if main_menu_button:
                     main_menu_button.draw(screen)
 
         pygame.display.flip()
 
-    if MIXER_OK:
-        try:
-            pygame.mixer.music.stop()
-        except Exception:
-            pass
+    stop_background_music()
+    dbg("run_loop() finalizado")
 
-    return
+
+def run(screen=None, W=None, H=None):
+    global MIXER_OK
+
+    if screen is None:
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.display.init()
+        pygame.font.init()
+        try:
+            pygame.mixer.init()
+            MIXER_OK = True
+        except Exception:
+            MIXER_OK = False
+        info = pygame.display.Info()
+        W, H = info.current_w, info.current_h
+        screen = pygame.display.set_mode(
+            (W, H),
+            pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
+            vsync=1,
+        )
+        pygame.display.set_caption("Restaurant Simulator - Game")
+    else:
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            MIXER_OK = True
+        except Exception:
+            MIXER_OK = False
+
+    start_background_music()
+    bundle = build_game_state(screen, W, H)
+    run_loop(screen, W, H, bundle)
 
 
 if __name__ == "__main__":

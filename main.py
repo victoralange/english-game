@@ -44,6 +44,15 @@ def start_background_music():
         print("Erro tocando música de fundo:", e)
 
 
+def stop_background_music():
+    if not MIXER_OK:
+        return
+    try:
+        pygame.mixer.music.stop()
+    except Exception:
+        pass
+
+
 def load_image_hq(filename, target_size=None):
     pil_img = Image.open(os.path.join(ASSETS_DIR, filename)).convert("RGBA")
     if target_size:
@@ -263,40 +272,37 @@ def main():
             break
         elif result == "play":
             try:
-                if MIXER_OK:
-                    try:
-                        pygame.mixer.music.stop()
-                    except Exception:
-                        pass
+                stop_background_music()
 
                 from loading import LoadingScreen, load_background_fast
                 import game
 
                 bg = load_background_fast(screen, "background.png")
-                loading = LoadingScreen(screen, bg, title="Loading Game...")
+                loading = LoadingScreen(screen, bg)
 
-                def work(ld):
-                    game.run(
-                        screen=screen,
-                        W=W,
-                        H=H,
-                        progress_cb=lambda p, msg=None: ld.set_progress(p, msg),
-                    )
+                def work():
+                    state_bundle = game.build_game_state(screen, W, H)
+                    return state_bundle
 
-                loading.run_with(work)
+                bundle = loading.run_blocking(work)
 
+                game.start_background_music()
+                game.run_loop(screen, W, H, bundle)
+
+                stop_background_music()
                 start_background_music()
+
             except SystemExit:
                 raise
             except Exception as e:
-                print(f"Erro ao rodar game.py: {e}")
+                print("Erro ao rodar game:", e)
                 import traceback
                 traceback.print_exc()
                 break
 
+    stop_background_music()
     if MIXER_OK:
         try:
-            pygame.mixer.music.stop()
             pygame.mixer.stop()
         except Exception:
             pass
