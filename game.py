@@ -8,27 +8,11 @@ from PIL import Image, ImageDraw, ImageFilter
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
-pygame.mixer.pre_init(44100, -16, 2, 512)
-pygame.display.init()
-pygame.font.init()
-try:
-    pygame.mixer.init()
-    MIXER_OK = True
-except Exception as e:
-    print("Aviso: mixer não inicializou:", e)
-    MIXER_OK = False
-
-info = pygame.display.Info()
-W, H = info.current_w, info.current_h
-
-screen = pygame.display.set_mode(
-    (W, H),
-    pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
-    vsync=1
-)
-pygame.display.set_caption("Restaurant Simulator - Game")
-
+W, H = 0, 0
+screen = None
 clock = pygame.time.Clock()
+
+MIXER_OK = False
 
 
 _audio_cache = {}
@@ -911,8 +895,42 @@ class InvisibleButton:
         pass
 
 
-def run():
+def run(screen=None, W=None, H=None, progress_cb=None):
+    global MIXER_OK
+
+    if screen is None:
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.display.init()
+        pygame.font.init()
+        try:
+            pygame.mixer.init()
+            MIXER_OK = True
+        except Exception as e:
+            print("Aviso: mixer não inicializou:", e)
+            MIXER_OK = False
+        info = pygame.display.Info()
+        W, H = info.current_w, info.current_h
+        screen = pygame.display.set_mode(
+            (W, H),
+            pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
+            vsync=1,
+        )
+        pygame.display.set_caption("Restaurant Simulator - Game")
+    else:
+        try:
+            if not pygame.mixer.get_init():
+                pygame.mixer.init()
+            MIXER_OK = True
+        except Exception:
+            MIXER_OK = False
+
+    def report(p, msg=None):
+        if progress_cb:
+            progress_cb(p, msg)
+
+    report(0.05, "Loading questions...")
     start_background_music()
+    report(0.15, "Preparing layout...")
 
     state = {
         "W": W,
@@ -1266,12 +1284,14 @@ def run():
             "money_score": load_font(max(12, int(img_h * 0.16)), bold=True) if ms_img is not None else load_font(16, bold=True),
         }
 
+    report(0.25, "Loading interface...")
     rebuild_layout()
 
     backdrop = pygame.Surface((state["W"], state["H"]), pygame.SRCALPHA)
     backdrop.fill((0, 0, 0, 220))
     backdrop_base_alpha = 220
 
+    report(0.55, "Loading questions...")
     questions = load_questions()
     random.shuffle(questions)
 
@@ -1569,9 +1589,12 @@ def run():
             load_question(current_index)
 
     pygame.event.pump()
-    pygame.display.flip()
+    if pygame.display.get_surface() is not None:
+        pygame.display.flip()
 
+    report(0.75, "Starting...")
     load_question(0)
+    report(1.0, "Ready!")
 
     running = True
     while running:
@@ -2041,10 +2064,10 @@ def run():
         pygame.display.flip()
 
     if MIXER_OK:
-            try:
-                pygame.mixer.music.stop()
-            except Exception:
-                pass
+        try:
+            pygame.mixer.music.stop()
+        except Exception:
+            pass
 
     return
 

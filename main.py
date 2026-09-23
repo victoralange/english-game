@@ -139,10 +139,6 @@ FADE_SPEED = 6.0
 
 running = True
 
-# ------------------------------------------------------------
-# NOVO: variável que guarda a ação escolhida no menu
-# ("play" ou "quit") para o run_menu() retornar corretamente.
-# ------------------------------------------------------------
 _menu_action = "quit"
 
 
@@ -173,10 +169,6 @@ def exit_game():
     _menu_action = "quit"
     running = False
 
-
-# =========================================================
-# BOTÕES CENTRALIZADOS VERTICALMENTE
-# =========================================================
 
 BUTTON_SPACING_Y = button_height * 1.10
 
@@ -277,14 +269,29 @@ def main():
                     except Exception:
                         pass
 
-                import importlib
+                from loading import LoadingScreen, load_background_fast
                 import game
-                importlib.reload(game)
-                game.run()
+
+                bg = load_background_fast(screen, "background.png")
+                loading = LoadingScreen(screen, bg, title="Loading Game...")
+
+                def work(ld):
+                    game.run(
+                        screen=screen,
+                        W=W,
+                        H=H,
+                        progress_cb=lambda p, msg=None: ld.set_progress(p, msg),
+                    )
+
+                loading.run_with(work)
 
                 start_background_music()
+            except SystemExit:
+                raise
             except Exception as e:
                 print(f"Erro ao rodar game.py: {e}")
+                import traceback
+                traceback.print_exc()
                 break
 
     if MIXER_OK:
