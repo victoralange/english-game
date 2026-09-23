@@ -143,7 +143,7 @@
         { "name": "Cheese", "image": "ingredients/cheese.png" },
         { "name": "Lettuce", "image": "ingredients/lettuce.png" },
         { "name": "Pasta", "image": "ingredients/pasta.png" },
-        { "name": "Strawberry", "image": "ingredients/strawberry.jpeg" },
+        { "name": "Strawberry", "image": "ingredients/strawberry.png" },
         { "name": "Milk", "image": "ingredients/milk.png" },
         { "name": "Ice", "image": "ingredients/ice.png" },
         { "name": "Bread", "image": "ingredients/bread.png" },
@@ -156,10 +156,10 @@
       "customer_image": "customers/ben.png",
       "question": "I want something velvety and comforting. What do you serve?",
       "keyword": "velvety",
-      "options": ["Dry toast", "Soup", "Spicy curry", "Salty chips"],
+      "options": ["Dry toast", "Creamy tomato soup", "Spicy curry", "Salty chips"],
       "option_images": [
         "dishes/dry_toast.png",
-        "dishes/soup.png",
+        "dishes/tomato_soup.png",
         "dishes/spicy_curry.png",
         "dishes/salty_chips.png"
       ],

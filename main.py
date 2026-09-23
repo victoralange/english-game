@@ -139,9 +139,16 @@ FADE_SPEED = 6.0
 
 running = True
 
+# ------------------------------------------------------------
+# NOVO: variável que guarda a ação escolhida no menu
+# ("play" ou "quit") para o run_menu() retornar corretamente.
+# ------------------------------------------------------------
+_menu_action = "quit"
+
 
 def play_game():
-    global running
+    global running, _menu_action
+    _menu_action = "play"
     running = False
 
 
@@ -162,18 +169,16 @@ def open_modal(key):
 
 
 def exit_game():
-    global running
+    global running, _menu_action
+    _menu_action = "quit"
     running = False
-    pygame.event.post(pygame.event.Event(pygame.QUIT))
 
 
 # =========================================================
 # BOTÕES CENTRALIZADOS VERTICALMENTE
 # =========================================================
-# 4 botões em coluna, centralizados verticalmente na tela.
-# Espaço entre botões definido pela constante BUTTON_SPACING_Y.
 
-BUTTON_SPACING_Y = button_height * 1.10   # ~10% de espaço entre botões
+BUTTON_SPACING_Y = button_height * 1.10
 
 _titles = ["play_game.png", "how_to_play.png", "vocabulary.png", "exit.png"]
 _commands = [play_game, open_tutorial, open_vocabulary, exit_game]
@@ -188,12 +193,13 @@ for i, (fname, cmd) in enumerate(zip(_titles, _commands)):
 
 
 def run_menu():
-    global running, modal_open, modal_alpha, modal_state, modal_key
+    global running, modal_open, modal_alpha, modal_state, modal_key, _menu_action
     running = True
     modal_open = False
     modal_alpha = 0.0
     modal_state = "closed"
     modal_key = None
+    _menu_action = "quit"
 
     while running:
         dt = clock.tick(60) / 1000.0
@@ -202,15 +208,20 @@ def run_menu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                return "quit"
+                _menu_action = "quit"
+                break
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
-                return "quit"
+                _menu_action = "quit"
+                break
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and modal_open and modal_state != "fading_out":
                 modal_state = "fading_out"
             elif not modal_open:
                 for btn in buttons:
                     btn.handle_event(event)
+
+        if not running:
+            break
 
         if modal_state == "fading_in":
             modal_alpha = min(1.0, modal_alpha + FADE_SPEED * dt)
@@ -248,7 +259,7 @@ def run_menu():
 
         pygame.display.flip()
 
-    return "play"
+    return _menu_action
 
 
 def main():

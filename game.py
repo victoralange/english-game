@@ -372,27 +372,22 @@ COMPLETED_BTN_MENU_H = 155 / 781
 COMPLETED_PANEL_PADDING = 0.02
 
 
-# ============================================================
-# money_score.png — proporções internas
-# ============================================================
-MS_SIZE_RATIO = 0.14          # tamanho geral (bem pequeno)
-MS_MARGIN_RIGHT = 0.03        # margem da borda direita
-MS_MARGIN_TOP = 0.03          # margem do topo
+MS_SIZE_RATIO = 0.14
+MS_MARGIN_RIGHT = 0.03
+MS_MARGIN_TOP = 0.03
 
-MS_MONEY_X = 0.112
-MS_MONEY_Y = 0.278
-MS_MONEY_W = 0.264
-MS_MONEY_H = 0.222
+MS_MONEY_X = 850  / 2172
+MS_MONEY_Y = 165  / 724
+MS_MONEY_W = 1155 / 2172
+MS_MONEY_H = 207  / 724
 
-MS_SCORE_X = 0.115
-MS_SCORE_Y = 0.588
-MS_SCORE_W = 0.225
-MS_SCORE_H = 0.174
+MS_SCORE_X = 850  / 2172
+MS_SCORE_Y = 396  / 724
+MS_SCORE_W = 1155 / 2172
+MS_SCORE_H = 190  / 724
 
-# Texto alinhado pela ESQUERDA, dentro da caixa do label
-MS_TEXT_PAD_X = 0.06
+MS_TEXT_PAD_PX = 40
 
-# Opacidade da imagem money_score.png (0-255)
 MS_IMG_ALPHA = 160
 
 
@@ -501,7 +496,6 @@ def get_star_image(stars):
 
 
 def get_customer_image(rel_path):
-    """Carrega imagem do cliente (só o personagem, sem UI)."""
     if not rel_path:
         return None
     if rel_path in _customer_image_cache:
@@ -927,7 +921,7 @@ def run():
         "cust_rect": None,
         "serving_bg": None,
         "serve_rect": None,
-        "serving_current": None,       
+        "serving_current": None,
         "ingredients_bg": None,
         "ing_rect": None,
         "wrong_bg": None,
@@ -969,8 +963,6 @@ def run():
     }
 
     def set_serving_background(customer_image_path):
-        """Troca o background da tela de serviço pela imagem do cliente.
-        Se customer_image_path não existir, usa background_serving.png."""
         w, h = state["W"], state["H"]
         chosen = None
 
@@ -1225,10 +1217,6 @@ def run():
             state["completed_btn_play_rect"] = None
             state["completed_btn_menu_rect"] = None
 
-        # ------------------------------------------------------------
-        # money_score.png — beeeem pequeno no canto superior direito
-        # COM OPACIDADE REDUZIDA
-        # ------------------------------------------------------------
         ms_img = get_money_score_image("money_score.png")
         state["money_score_img"] = ms_img
         if ms_img is not None:
@@ -1236,7 +1224,6 @@ def run():
             ratio = img_w / ms_img.get_width()
             img_h = int(ms_img.get_height() * ratio)
             scaled = pygame.transform.smoothscale(ms_img, (img_w, img_h))
-            # aplica opacidade (alpha) na imagem
             scaled.set_alpha(MS_IMG_ALPHA)
             state["money_score_img"] = scaled
 
@@ -1513,12 +1500,34 @@ def run():
         set_serving_background(customer_img)
 
         cells = compute_answer_cells()
+
+        options = list(current_question["options"])
+        option_images = list(current_question.get("option_images", []))
+        correct_idx = current_question["correct"]
+
+        n = len(options)
+        perm = list(range(n))
+        random.shuffle(perm)
+
+        shuffled_options = [options[i] for i in perm]
+        shuffled_images = []
+        for i in perm:
+            if i < len(option_images):
+                shuffled_images.append(option_images[i])
+            else:
+                shuffled_images.append(None)
+
+        new_correct = perm.index(correct_idx)
+
+        current_question["options"] = shuffled_options
+        current_question["option_images"] = shuffled_images
+        current_question["correct"] = new_correct
+
         answer_buttons = []
-        option_images = current_question.get("option_images", [])
-        for i, opt in enumerate(current_question["options"]):
+        for i, opt in enumerate(shuffled_options):
             if i >= len(cells):
                 break
-            dish_img_path = option_images[i] if i < len(option_images) else None
+            dish_img_path = shuffled_images[i] if i < len(shuffled_images) else None
             answer_buttons.append(
                 AnswerButton(cells[i], opt, state["fonts"]["answer"], i, on_answer, dish_img_path)
             )
@@ -1783,10 +1792,6 @@ def run():
 
             s_rect = state["serve_rect"]
 
-            # ------------------------------------------------------------
-            # money_score.png no canto superior direito (com opacidade)
-            # Texto com orientação/alinhamento à ESQUERDA
-            # ------------------------------------------------------------
             if state["money_score_img"] is not None and state["ms_rect"] is not None:
                 screen.blit(state["money_score_img"], state["ms_rect"].topleft)
 
@@ -1796,8 +1801,8 @@ def run():
                     money_str = f"${money}"
                     money_surf = ms_font.render(money_str, True, (255, 255, 255))
                     money_rect = state["ms_money_rect"]
-                    # Texto começa na borda ESQUERDA do label (left-aligned)
-                    text_x = money_rect.right - int(money_rect.width * MS_TEXT_PAD_X) - money_surf.get_width()
+                    pad_px = int(MS_TEXT_PAD_PX * (money_rect.width / 1155))
+                    text_x = money_rect.right - money_surf.get_width() - pad_px
                     text_y = money_rect.centery - money_surf.get_height() // 2
                     screen.blit(money_surf, (text_x, text_y))
 
@@ -1805,8 +1810,8 @@ def run():
                     score_str = f"{score}"
                     score_surf = ms_font.render(score_str, True, (255, 255, 255))
                     score_rect = state["ms_score_rect"]
-                    # Texto começa na borda ESQUERDA do label (left-aligned)
-                    text_x = score_rect.right - int(score_rect.width * MS_TEXT_PAD_X) - score_surf.get_width()
+                    pad_px = int(MS_TEXT_PAD_PX * (score_rect.width / 1155))
+                    text_x = score_rect.right - score_surf.get_width() - pad_px
                     text_y = score_rect.centery - score_surf.get_height() // 2
                     screen.blit(score_surf, (text_x, text_y))
             else:
@@ -1829,7 +1834,7 @@ def run():
                     speech_rel.height
                 )
                 q_text = current_question["question"]
-                max_text_w = speech_abs.width - 30
+                max_text_w = speech_abs.width - 50
                 lines = wrap_text(q_text, state["fonts"]["question"], max_text_w)
                 line_h = state["fonts"]["question"].get_linesize()
                 total_h = line_h * len(lines)
