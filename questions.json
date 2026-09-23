@@ -1,0 +1,304 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "customer": "Anna",
+      "customer_image": "customers/anna.png",
+      "question": "I want something briny and light. What do you serve?",
+      "keyword": "briny",
+      "options": ["Grilled salmon with lemon", "Chocolate cake", "Beef stew", "Buttered toast"],
+      "option_images": [
+        "dishes/grilled_salmon.png",
+        "dishes/chocolate_cake.png",
+        "dishes/beef_stew.png",
+        "dishes/buttered_toast.png"
+      ],
+      "correct": 0,
+      "explanation": "Briny = salty, like the sea. Salmon fits perfectly.",
+      "correct_ingredients": [0, 4],
+      "plate_name": "Grilled salmon with lemon",
+      "plate_text": "A light, briny dish with a fresh citrus touch.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Chocolate", "image": "ingredients/chocolate.png" },
+        { "name": "Beef", "image": "ingredients/beef.png" },
+        { "name": "Butter", "image": "ingredients/butter.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 2,
+      "customer": "Tom",
+      "customer_image": "customers/tom.png",
+      "question": "I'm craving something gooey and comforting. What do you serve?",
+      "keyword": "gooey",
+      "options": ["Melted cheese pasta", "Spicy curry", "Iced tea", "Dry toast"],
+      "option_images": [
+        "dishes/melted_cheese_pasta.png",
+        "dishes/spicy_curry.png",
+        "dishes/iced_tea.png",
+        "dishes/dry_toast.png"
+      ],
+      "correct": 0,
+      "explanation": "Gooey = sticky, creamy. Melted cheese is gooey.",
+      "correct_ingredients": [1, 3],
+      "plate_name": "Melted cheese pasta",
+      "plate_text": "Creamy, gooey and warm — pure comfort food.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 3,
+      "customer": "Mia",
+      "customer_image": "customers/mia.png",
+      "question": "I'd like something mild and airy for lunch. What do you serve?",
+      "keyword": "airy",
+      "options": ["Spicy curry", "Heavy steak", "Smoothie", "Croissant"],
+      "option_images": [
+        "dishes/spicy_curry.png",
+        "dishes/heavy_steak.png",
+        "dishes/smoothie.png",
+        "dishes/croissant.png"
+      ],
+      "correct": 2,
+      "explanation": "Airy = light and full of air. A smoothie is light and airy.",
+      "correct_ingredients": [4, 5, 6],
+      "plate_name": "Smoothie",
+      "plate_text": "Light, fluffy and refreshing — a soft, airy drink.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Eggs", "image": "ingredients/eggs.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Milk", "image": "ingredients/milk.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 4,
+      "customer": "Leo",
+      "customer_image": "customers/leo.png",
+      "question": "I want something rich and smoky. What do you serve?",
+      "keyword": "smoky",
+      "options": ["Heavy steak", "Vanilla ice cream", "Green tea", "Steamed rice"],
+      "option_images": [
+        "dishes/heavy_steak.png",
+        "dishes/vanilla_ice_cream.png",
+        "dishes/green_tea.png",
+        "dishes/steamed_rice.png"
+      ],
+      "correct": 0,
+      "explanation": "Smoky = has a smoke flavor. Smoked meat is smoky.",
+      "correct_ingredients": [0, 7],
+      "plate_name": "Smoked brisket",
+      "plate_text": "Slow-smoked, rich and full of deep flavor.",
+      "ingredients": [
+        { "name": "Beef", "image": "ingredients/beef.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Smoke spice", "image": "ingredients/smoke.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 5,
+      "customer": "Sara",
+      "customer_image": "customers/sara.png",
+      "question": "I'd love something tangy and refreshing. What do you serve?",
+      "keyword": "tangy",
+      "options": ["Buttered popcorn", "Smoothie", "Oatmeal", "Iced tea"],
+      "option_images": [
+        "dishes/buttered_popcorn.png",
+        "dishes/smoothie.png",
+        "dishes/oatmeal.png",
+        "dishes/iced_tea.png"
+      ],
+      "correct": 1,
+      "explanation": "Tangy = sour, acidic. A smoothie can be tangy and refreshing.",
+      "correct_ingredients": [4, 6],
+      "plate_name": "Smoothie",
+      "plate_text": "Cold, tangy and refreshing — a fruity burst.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Milk", "image": "ingredients/milk.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Ice", "image": "ingredients/ice.png" }
+      ]
+    },
+    {
+      "id": 6,
+      "customer": "Ben",
+      "customer_image": "customers/ben.png",
+      "question": "I want something velvety and comforting. What do you serve?",
+      "keyword": "velvety",
+      "options": ["Soup", "Dry toast", "Spicy curry", "Salty chips"],
+      "option_images": [
+        "dishes/soup.png",
+        "dishes/dry_toast.png",
+        "dishes/spicy_curry.png",
+        "dishes/salty_chips.png"
+      ],
+      "correct": 0,
+      "explanation": "Velvety = smooth like velvet. Creamy soup fits.",
+      "correct_ingredients": [1, 5],
+      "plate_name": "Creamy tomato soup",
+      "plate_text": "Smooth and velvety — a warm, comforting bowl.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Tomato", "image": "ingredients/tomato.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Milk", "image": "ingredients/milk.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 7,
+      "customer": "Nina",
+      "customer_image": "customers/nina.png",
+      "question": "I want something flaky and buttery. What do you serve?",
+      "keyword": "flaky",
+      "options": ["Croissant", "Buttered toast", "Steamed rice", "Yogurt"],
+      "option_images": [
+        "dishes/croissant.png",
+        "dishes/buttered_toast.png",
+        "dishes/steamed_rice.png",
+        "dishes/yogurt.png"
+      ],
+      "correct": 0,
+      "explanation": "Flaky = layers that break easily. Croissants are flaky.",
+      "correct_ingredients": [0, 8],
+      "plate_name": "Croissant",
+      "plate_text": "Golden, flaky layers with a rich buttery aroma.",
+      "ingredients": [
+        { "name": "Butter", "image": "ingredients/butter.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Dough", "image": "ingredients/dough.png" }
+      ]
+    },
+    {
+      "id": 8,
+      "customer": "Diego",
+      "customer_image": "customers/diego.png",
+      "question": "I want something earthy and rich. What do you serve?",
+      "keyword": "earthy",
+      "options": ["Mushroom risotto", "Cotton candy", "Soda", "Green tea"],
+      "option_images": [
+        "dishes/mushroom_risotto.png",
+        "dishes/cotton_candy.png",
+        "dishes/soda.png",
+        "dishes/green_tea.png"
+      ],
+      "correct": 0,
+      "explanation": "Earthy = earthy flavors like mushrooms, truffle, beets.",
+      "correct_ingredients": [3, 6, 7],
+      "plate_name": "Mushroom risotto",
+      "plate_text": "Deep, earthy mushrooms with creamy rice.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Mushroom", "image": "ingredients/mushroom.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Truffle oil", "image": "ingredients/truffle.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 9,
+      "customer": "Lily",
+      "customer_image": "customers/lily.png",
+      "question": "I want something crumbly and sweet. What do you serve?",
+      "keyword": "crumbly",
+      "options": ["Apple pie", "Smoothie", "Soup", "Beef stew"],
+      "option_images": [
+        "dishes/apple_pie.png",
+        "dishes/smoothie.png",
+        "dishes/soup.png",
+        "dishes/beef_stew.png"
+      ],
+      "correct": 0,
+      "explanation": "Crumbly = breaks into small pieces. Pie crust is crumbly.",
+      "correct_ingredients": [2, 5, 6],
+      "plate_name": "Apple pie",
+      "plate_text": "Sweet apples wrapped in a crumbly, buttery crust.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Cheese", "image": "ingredients/cheese.png" },
+        { "name": "Apple", "image": "ingredients/apple.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Lemon", "image": "ingredients/lemon.png" },
+        { "name": "Butter", "image": "ingredients/butter.png" },
+        { "name": "Flour", "image": "ingredients/flour.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Cream", "image": "ingredients/cream.png" }
+      ]
+    },
+    {
+      "id": 10,
+      "customer": "Carlos",
+      "customer_image": "customers/carlos.png",
+      "question": "I want something pungent and intense. What do you serve?",
+      "keyword": "pungent",
+      "options": ["Blue cheese", "Milk", "White bread", "Cucumber"],
+      "option_images": [
+        "dishes/blue_cheese.png",
+        "dishes/milk.png",
+        "dishes/white_bread.png",
+        "dishes/cucumber.png"
+      ],
+      "correct": 0,
+      "explanation": "Pungent = strong smell/flavor. Blue cheese is pungent.",
+      "correct_ingredients": [1],
+      "plate_name": "Blue cheese",
+      "plate_text": "Bold, pungent and intense — not for the faint-hearted.",
+      "ingredients": [
+        { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
+        { "name": "Blue cheese", "image": "ingredients/blue_cheese.png" },
+        { "name": "Lettuce", "image": "ingredients/lettuce.png" },
+        { "name": "Pasta", "image": "ingredients/pasta.png" },
+        { "name": "Onion", "image": "ingredients/onion.png" },
+        { "name": "Sugar", "image": "ingredients/sugar.png" },
+        { "name": "Rice", "image": "ingredients/rice.png" },
+        { "name": "Bread", "image": "ingredients/bread.png" },
+        { "name": "Garlic", "image": "ingredients/garlic.png" }
+      ]
+    }
+  ]
+}

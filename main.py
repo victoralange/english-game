@@ -5,8 +5,17 @@ from PIL import Image
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
+BACKGROUND_MUSIC_VOLUME = 0.02
+
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.display.init()
 pygame.font.init()
+try:
+    pygame.mixer.init()
+    MIXER_OK = True
+except Exception as e:
+    print("Aviso: mixer não inicializou:", e)
+    MIXER_OK = False
 
 info = pygame.display.Info()
 W, H = info.current_w, info.current_h
@@ -19,6 +28,20 @@ screen = pygame.display.set_mode(
 pygame.display.set_caption("Restaurant Simulator")
 
 clock = pygame.time.Clock()
+
+
+def start_background_music():
+    if not MIXER_OK:
+        return
+    path = os.path.join(ASSETS_DIR, "background.ogg")
+    if not os.path.exists(path):
+        return
+    try:
+        pygame.mixer.music.load(path)
+        pygame.mixer.music.set_volume(BACKGROUND_MUSIC_VOLUME)
+        pygame.mixer.music.play(-1)
+    except Exception as e:
+        print("Erro tocando música de fundo:", e)
 
 
 def load_image_hq(filename, target_size=None):
@@ -144,12 +167,24 @@ def exit_game():
     pygame.event.post(pygame.event.Event(pygame.QUIT))
 
 
-buttons = [
-    Button("play_game.png", 0.60, play_game),
-    Button("how_to_play.png", 0.685, open_tutorial),
-    Button("vocabulary.png", 0.77, open_vocabulary),
-    Button("exit.png", 0.855, exit_game),
-]
+# =========================================================
+# BOTÕES CENTRALIZADOS VERTICALMENTE
+# =========================================================
+# 4 botões em coluna, centralizados verticalmente na tela.
+# Espaço entre botões definido pela constante BUTTON_SPACING_Y.
+
+BUTTON_SPACING_Y = button_height * 1.10   # ~10% de espaço entre botões
+
+_titles = ["play_game.png", "how_to_play.png", "vocabulary.png", "exit.png"]
+_commands = [play_game, open_tutorial, open_vocabulary, exit_game]
+
+_total_h = len(_titles) * BUTTON_SPACING_Y
+_start_y = (H - _total_h) / 2 + BUTTON_SPACING_Y / 2
+
+buttons = []
+for i, (fname, cmd) in enumerate(zip(_titles, _commands)):
+    y_ratio = (_start_y + i * BUTTON_SPACING_Y) / H
+    buttons.append(Button(fname, y_ratio, cmd))
 
 
 def run_menu():
@@ -189,11 +224,13 @@ def run_menu():
                 modal_key = None
 
         if not modal_open:
+            any_hovered = False
             for btn in buttons:
                 btn.update(mouse_pos)
                 if btn.hovered:
-                    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
-                    break
+                    any_hovered = True
+            if any_hovered:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
             else:
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
@@ -215,19 +252,36 @@ def run_menu():
 
 
 def main():
+    start_background_music()
+
     while True:
         result = run_menu()
         if result == "quit":
             break
         elif result == "play":
             try:
+                if MIXER_OK:
+                    try:
+                        pygame.mixer.music.stop()
+                    except Exception:
+                        pass
+
                 import importlib
                 import game
                 importlib.reload(game)
                 game.run()
+
+                start_background_music()
             except Exception as e:
                 print(f"Erro ao rodar game.py: {e}")
                 break
+
+    if MIXER_OK:
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.stop()
+        except Exception:
+            pass
 
     pygame.quit()
 
