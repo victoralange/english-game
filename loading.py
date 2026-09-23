@@ -3,7 +3,6 @@ import math
 import threading
 import pygame
 from PIL import Image
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
@@ -52,6 +51,12 @@ class LoadingScreen:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 raise SystemExit
+            
+    def tick(self):
+        dt = self.clock.tick(60) / 1000.0
+        self.update_spinner(dt)
+        self._draw_spinner()
+        self.pump_events()
 
     def run_blocking(self, work_fn):
         result_box = {"result": None, "error": None, "done": False}

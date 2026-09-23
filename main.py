@@ -280,11 +280,7 @@ def main():
                 bg = load_background_fast(screen, "background.png")
                 loading = LoadingScreen(screen, bg)
 
-                def work():
-                    state_bundle = game.build_game_state(screen, W, H)
-                    return state_bundle
-
-                bundle = loading.run_blocking(work)
+                bundle = game.build_game_state(screen, W, H, tick=loading.tick)
 
                 game.start_background_music()
                 game.run_loop(screen, W, H, bundle)

@@ -3,7 +3,7 @@
     {
       "id": 1,
       "customer": "Anna",
-      "customer_image": "customers/anna.png",
+      "customer_image": "customers/1.png",
       "question": "I want something briny and light. What do you serve?",
       "keyword": "briny",
       "options": ["Chocolate cake", "Grilled salmon with lemon", "Beef stew", "Buttered toast"],
@@ -33,7 +33,7 @@
     {
       "id": 2,
       "customer": "Tom",
-      "customer_image": "customers/tom.png",
+      "customer_image": "customers/2.png",
       "question": "I'm craving something gooey and comforting. What do you serve?",
       "keyword": "gooey",
       "options": ["Spicy curry", "Iced tea", "Melted cheese pasta", "Dry toast"],
@@ -63,7 +63,7 @@
     {
       "id": 3,
       "customer": "Mia",
-      "customer_image": "customers/mia.png",
+      "customer_image": "customers/3.png",
       "question": "I'd like something mild and airy for lunch. What do you serve?",
       "keyword": "airy",
       "options": ["Spicy curry", "Heavy steak", "Croissant", "Meringue"],
@@ -93,7 +93,7 @@
     {
       "id": 4,
       "customer": "Leo",
-      "customer_image": "customers/leo.png",
+      "customer_image": "customers/4.png",
       "question": "I want something rich and smoky. What do you serve?",
       "keyword": "smoky",
       "options": ["Vanilla ice cream", "Heavy steak", "Green tea", "Steamed rice"],
@@ -123,7 +123,7 @@
     {
       "id": 5,
       "customer": "Sara",
-      "customer_image": "customers/sara.png",
+      "customer_image": "customers/5.png",
       "question": "I'd love something tangy and refreshing. What do you serve?",
       "keyword": "tangy",
       "options": ["Buttered popcorn", "Smoothie", "Oatmeal", "Iced tea"],
@@ -153,7 +153,7 @@
     {
       "id": 6,
       "customer": "Ben",
-      "customer_image": "customers/ben.png",
+      "customer_image": "customers/6.png",
       "question": "I want something velvety and comforting. What do you serve?",
       "keyword": "velvety",
       "options": ["Dry toast", "Creamy tomato soup", "Spicy curry", "Salty chips"],
@@ -183,7 +183,7 @@
     {
       "id": 7,
       "customer": "Nina",
-      "customer_image": "customers/nina.png",
+      "customer_image": "customers/7.png",
       "question": "I want something flaky and buttery. What do you serve?",
       "keyword": "flaky",
       "options": ["Buttered toast", "Steamed rice", "Croissant", "Yogurt"],
@@ -213,7 +213,7 @@
     {
       "id": 8,
       "customer": "Diego",
-      "customer_image": "customers/diego.png",
+      "customer_image": "customers/8.png",
       "question": "I want something earthy and rich. What do you serve?",
       "keyword": "earthy",
       "options": ["Cotton candy", "Soda", "Green tea", "Mushroom risotto"],
@@ -243,7 +243,7 @@
     {
       "id": 9,
       "customer": "Lily",
-      "customer_image": "customers/lily.png",
+      "customer_image": "customers/1.png",
       "question": "I want something crumbly and sweet. What do you serve?",
       "keyword": "crumbly",
       "options": ["Smoothie", "Apple pie", "Soup", "Beef stew"],
@@ -273,7 +273,7 @@
     {
       "id": 10,
       "customer": "Carlos",
-      "customer_image": "customers/carlos.png",
+      "customer_image": "customers/2.png",
       "question": "I want something pungent and intense. What do you serve?",
       "keyword": "pungent",
       "options": ["Milk", "White bread", "Blue cheese", "Cucumber"],
@@ -303,7 +303,7 @@
     {
       "id": 11,
       "customer": "Emma",
-      "customer_image": "customers/emma.png",
+      "customer_image": "customers/3.png",
       "question": "I want something crispy and salty. What do you serve?",
       "keyword": "crispy",
       "options": ["Salty chips", "Yogurt", "Oatmeal", "Milk"],
@@ -333,7 +333,7 @@
     {
       "id": 12,
       "customer": "Lucas",
-      "customer_image": "customers/lucas.png",
+      "customer_image": "customers/4.png",
       "question": "I want something fluffy and sweet. What do you serve?",
       "keyword": "fluffy",
       "options": ["Cotton candy", "Steamed rice", "Cucumber", "Beef stew"],
@@ -363,7 +363,7 @@
     {
       "id": 13,
       "customer": "Olivia",
-      "customer_image": "customers/olivia.png",
+      "customer_image": "customers/5.png",
       "question": "I want something warm and creamy for breakfast. What do you serve?",
       "keyword": "creamy",
       "options": ["Oatmeal", "Soda", "Salty chips", "Green tea"],
@@ -393,7 +393,7 @@
     {
       "id": 14,
       "customer": "Noah",
-      "customer_image": "customers/noah.png",
+      "customer_image": "customers/6.png",
       "question": "I want something fizzy and sweet. What do you serve?",
       "keyword": "fizzy",
       "options": ["Soda", "Soup", "Mushroom risotto", "Steamed rice"],
@@ -423,7 +423,7 @@
     {
       "id": 15,
       "customer": "Ava",
-      "customer_image": "customers/ava.png",
+      "customer_image": "customers/7.png",
       "question": "I want something hot and comforting to drink. What do you serve?",
       "keyword": "herbal",
       "options": ["Green tea", "Iced tea", "Smoothie", "Soda"],
@@ -453,7 +453,7 @@
     {
       "id": 16,
       "customer": "Ethan",
-      "customer_image": "customers/ethan.png",
+      "customer_image": "customers/8.png",
       "question": "I want something cool and refreshing to drink. What do you serve?",
       "keyword": "chilled",
       "options": ["Green tea", "Iced tea", "Oatmeal", "Soup"],
@@ -483,7 +483,7 @@
     {
       "id": 17,
       "customer": "Sophia",
-      "customer_image": "customers/sophia.png",
+      "customer_image": "customers/1.png",
       "question": "I want something sweet and frozen. What do you serve?",
       "keyword": "frozen",
       "options": ["Vanilla ice cream", "Soup", "Spicy curry", "Dry toast"],
@@ -513,7 +513,7 @@
     {
       "id": 18,
       "customer": "Mason",
-      "customer_image": "customers/mason.png",
+      "customer_image": "customers/2.png",
       "question": "I want something spicy and bold. What do you serve?",
       "keyword": "spicy",
       "options": ["Spicy curry", "Milk", "White bread", "Yogurt"],
@@ -543,7 +543,7 @@
     {
       "id": 19,
       "customer": "Isabella",
-      "customer_image": "customers/isabella.png",
+      "customer_image": "customers/3.png",
       "question": "I want something plain and soft. What do you serve?",
       "keyword": "plain",
       "options": ["White bread", "Spicy curry", "Soda", "Salty chips"],
@@ -573,7 +573,7 @@
     {
       "id": 20,
       "customer": "James",
-      "customer_image": "customers/james.png",
+      "customer_image": "customers/4.png",
       "question": "I want something fresh and watery. What do you serve?",
       "keyword": "watery",
       "options": ["Cucumber", "Beef stew", "Chocolate cake", "Croissant"],
@@ -603,7 +603,7 @@
     {
       "id": 21,
       "customer": "Charlotte",
-      "customer_image": "customers/charlotte.png",
+      "customer_image": "customers/5.png",
       "question": "I want something rich and chocolatey. What do you serve?",
       "keyword": "chocolatey",
       "options": ["Chocolate cake", "Cucumber", "Green tea", "Oatmeal"],
@@ -633,7 +633,7 @@
     {
       "id": 22,
       "customer": "Henry",
-      "customer_image": "customers/henry.png",
+      "customer_image": "customers/6.png",
       "question": "I want something hearty and slow-cooked. What do you serve?",
       "keyword": "hearty",
       "options": ["Beef stew", "Meringue", "Smoothie", "Cotton candy"],
@@ -663,7 +663,7 @@
     {
       "id": 23,
       "customer": "Amelia",
-      "customer_image": "customers/amelia.png",
+      "customer_image": "customers/7.png",
       "question": "I want something dry and crunchy. What do you serve?",
       "keyword": "dry",
       "options": ["Dry toast", "Soup", "Smoothie", "Milk"],
@@ -693,7 +693,7 @@
     {
       "id": 24,
       "customer": "Daniel",
-      "customer_image": "customers/daniel.png",
+      "customer_image": "customers/8.png",
       "question": "I want something buttery and warm. What do you serve?",
       "keyword": "buttery",
       "options": ["Buttered toast", "Cucumber", "Soda", "Green tea"],
@@ -723,7 +723,7 @@
     {
       "id": 25,
       "customer": "Grace",
-      "customer_image": "customers/grace.png",
+      "customer_image": "customers/1.png",
       "question": "I want something buttery and crunchy. What do you serve?",
       "keyword": "buttery",
       "options": ["Buttered popcorn", "Beef stew", "Oatmeal", "Mushroom risotto"],
@@ -753,7 +753,7 @@
     {
       "id": 26,
       "customer": "Jack",
-      "customer_image": "customers/jack.png",
+      "customer_image": "customers/2.png",
       "question": "I want something thick and smooth. What do you serve?",
       "keyword": "thick",
       "options": ["Yogurt", "Iced tea", "Salty chips", "Dry toast"],
@@ -783,7 +783,7 @@
     {
       "id": 27,
       "customer": "Chloe",
-      "customer_image": "customers/chloe.png",
+      "customer_image": "customers/3.png",
       "question": "I want something cold and plain to drink. What do you serve?",
       "keyword": "plain",
       "options": ["Milk", "Soda", "Soup", "Spicy curry"],
@@ -810,10 +810,10 @@
         { "name": "Cream", "image": "ingredients/cream.png" }
       ]
     },
-      {
+    {
       "id": 28,
       "customer": "Ryan",
-      "customer_image": "customers/ryan.png",
+      "customer_image": "customers/4.png",
       "question": "I want something warm and plain. What do you serve?",
       "keyword": "plain",
       "options": ["Steamed rice", "Apple pie", "Cotton candy", "Iced tea"],
