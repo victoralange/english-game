@@ -338,45 +338,45 @@ CORRECT_BTN_PAD_Y = 0.08
 
 CORRECT_TEXT_PADDING = 0.02
 
-COMPLETED_PANEL_X0 = 25 / 2014
-COMPLETED_PANEL_Y0 = 92 / 781
-COMPLETED_PANEL_W  = 1966 / 2014
-COMPLETED_PANEL_H  = 660 / 781
+COMPLETED_PANEL_X0 = 0.043
+COMPLETED_PANEL_Y0 = 0.353
+COMPLETED_PANEL_W  = 0.914
+COMPLETED_PANEL_H  = 0.383
 
-COMPLETED_LEFTBOX_X = 84 / 2014
-COMPLETED_LEFTBOX_Y = 180 / 781
-COMPLETED_LEFTBOX_W = 940 / 2014
-COMPLETED_LEFTBOX_H = 420 / 781
+COMPLETED_LINE_X = 0.16
+COMPLETED_LINE_W = 0.30
+COMPLETED_LINE_H = 0.065
 
-COMPLETED_LINE_X = 143 / 2014
-COMPLETED_LINE_W = (600 - 143) / 2014
-COMPLETED_LINE_H = 70 / 781
-
-COMPLETED_LINE1_Y = 230 / 781
-COMPLETED_LINE2_Y = 320 / 781
-COMPLETED_LINE3_Y = 410 / 781
-COMPLETED_LINE4_Y = 500 / 781
-
-COMPLETED_VALUE_X = 750 / 2014
-COMPLETED_VALUE_W = (985 - 750) / 2014
-
-COMPLETED_RIGHTBOX_X = 1049 / 2014
-COMPLETED_RIGHTBOX_Y = 263 / 781
-COMPLETED_RIGHTBOX_W = 884 / 2014
-COMPLETED_RIGHTBOX_H = 276 / 781
+COMPLETED_LEFTBOX_X = 0.16
+COMPLETED_LEFTBOX_Y = 0.389
+COMPLETED_LEFTBOX_W = 0.30
+COMPLETED_LEFTBOX_H = 0.065
 
 COMPLETED_RANK_Y_RATIO = 0.18
 COMPLETED_STAR_Y_RATIO = 0.62
 
-COMPLETED_BTN_PLAY_X = 104 / 2014
-COMPLETED_BTN_PLAY_Y = 563 / 781
-COMPLETED_BTN_PLAY_W = 915 / 2014
-COMPLETED_BTN_PLAY_H = 155 / 781
+COMPLETED_LINE1_Y = 0.389
+COMPLETED_LINE2_Y = 0.472
+COMPLETED_LINE3_Y = 0.560
+COMPLETED_LINE4_Y = 0.645
 
-COMPLETED_BTN_MENU_X = 1054 / 2014
-COMPLETED_BTN_MENU_Y = 563 / 781
-COMPLETED_BTN_MENU_W = 859 / 2014
-COMPLETED_BTN_MENU_H = 155 / 781
+COMPLETED_VALUE_X = 0.48
+COMPLETED_VALUE_W = 0.20
+
+COMPLETED_RIGHTBOX_X = 0.70
+COMPLETED_RIGHTBOX_Y = 0.40
+COMPLETED_RIGHTBOX_W = 0.23
+COMPLETED_RIGHTBOX_H = 0.28
+
+COMPLETED_BTN_PLAY_X = 0.043
+COMPLETED_BTN_PLAY_Y = 0.761
+COMPLETED_BTN_PLAY_W = 0.451
+COMPLETED_BTN_PLAY_H = 0.156
+
+COMPLETED_BTN_MENU_X = 0.507
+COMPLETED_BTN_MENU_Y = 0.761
+COMPLETED_BTN_MENU_W = 0.452
+COMPLETED_BTN_MENU_H = 0.156
 
 COMPLETED_PANEL_PADDING = 0.02
 
@@ -1452,18 +1452,11 @@ def build_game_state(screen, W, H, tick=None):
 
     def make_box_comp(bx, by, bw, bh):
         return pygame.Rect(
-            panel_x + int(panel_w * bx),
-            panel_y + int(panel_h * by),
-            int(panel_w * bw),
-            int(panel_h * bh),
+            cp_x + int(cp_w * bx),
+            cp_y + int(cp_h * by),
+            int(cp_w * bw),
+            int(cp_h * bh),
         )
-
-    state["completed_leftbox_rect"] = make_box_comp(
-        COMPLETED_LEFTBOX_X,
-        COMPLETED_LEFTBOX_Y,
-        COMPLETED_LEFTBOX_W,
-        COMPLETED_LEFTBOX_H
-    )
 
     state["completed_rightbox_rect"] = make_box_comp(
         COMPLETED_RIGHTBOX_X,
@@ -1635,8 +1628,19 @@ def build_game_state(screen, W, H, tick=None):
     }
 
     _tick()
-    questions = load_questions()
-    questions = random.sample(questions, 10) 
+    all_questions = load_questions()
+
+    P8 = [q for q in all_questions if q.get("customer_image") == "customers/8.png"]
+    OUTRAS = [q for q in all_questions if q.get("customer_image") != "customers/8.png"]
+
+    N = 10
+
+    qtd_p8 = random.randint(1, min(len(P8), N))
+    escolhidas_p8 = random.sample(P8, qtd_p8)
+    escolhidas_outras = random.sample(OUTRAS, N - qtd_p8)
+
+    questions = escolhidas_p8 + escolhidas_outras
+    random.shuffle(questions)
 
     current_question = questions[0]
 
@@ -2157,7 +2161,7 @@ def run_loop(screen, W, H, bundle):
                 ing_surf_cache = None
                 if current_question is not None and not plate_evaluated and answered and answer_was_correct:
                     plate_evaluated = True
-                    open_correct_modal(0)
+                    open_correct_modal(100)
 
         if wrong_modal_state == "fading_in":
             wrong_modal_alpha = min(1.0, wrong_modal_alpha + FADE_SPEED * dt)
@@ -2408,7 +2412,7 @@ def run_loop(screen, W, H, bundle):
                         line_spacing=6,
                     )
 
-                if state["correct_btn_rect"] is not None and correct_points > 0:
+                if state["correct_btn_rect"] is not None:
                     btn_rect = state["correct_btn_rect"]
                     pad_x = int(btn_rect.width * CORRECT_BTN_PAD_X)
                     points_text = f"+{correct_points} POINTS"
@@ -2442,11 +2446,11 @@ def run_loop(screen, W, H, bundle):
                     value_rect = state["completed_values_rects"][i]
 
                     label_surf = state["fonts"]["completed_label"].render(labels[i], True, (255, 255, 255))
-                    label_pos = label_surf.get_rect(midleft=(label_rect.left, label_rect.centery))
+                    label_pos = label_surf.get_rect(topleft=(label_rect.left, label_rect.top))
                     screen.blit(label_surf, label_pos)
 
                     value_surf = state["fonts"]["completed_value"].render(values[i], True, (255, 255, 255))
-                    value_pos = value_surf.get_rect(midleft=(value_rect.left, value_rect.centery))
+                    value_pos = value_surf.get_rect(topleft=(value_rect.left, value_rect.top))                    
                     screen.blit(value_surf, value_pos)
 
                 if state["completed_rightbox_rect"] is not None:

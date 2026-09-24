@@ -25,7 +25,7 @@ screen = pygame.display.set_mode(
     pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
     vsync=1
 )
-pygame.display.set_caption("Flavor Chef")
+pygame.display.set_caption("Restaurant Simulator")
 
 clock = pygame.time.Clock()
 
@@ -42,15 +42,6 @@ def start_background_music():
         pygame.mixer.music.play(-1)
     except Exception as e:
         print("Erro tocando música de fundo:", e)
-
-
-def stop_background_music():
-    if not MIXER_OK:
-        return
-    try:
-        pygame.mixer.music.stop()
-    except Exception:
-        pass
 
 
 def load_image_hq(filename, target_size=None):
@@ -148,7 +139,12 @@ FADE_SPEED = 6.0
 
 running = True
 
+# ------------------------------------------------------------
+# NOVO: variável que guarda a ação escolhida no menu
+# ("play" ou "quit") para o run_menu() retornar corretamente.
+# ------------------------------------------------------------
 _menu_action = "quit"
+
 
 def play_game():
     global running, _menu_action
@@ -177,6 +173,10 @@ def exit_game():
     _menu_action = "quit"
     running = False
 
+
+# =========================================================
+# BOTÕES CENTRALIZADOS VERTICALMENTE
+# =========================================================
 
 BUTTON_SPACING_Y = button_height * 1.10
 
@@ -271,33 +271,25 @@ def main():
             break
         elif result == "play":
             try:
-                stop_background_music()
+                if MIXER_OK:
+                    try:
+                        pygame.mixer.music.stop()
+                    except Exception:
+                        pass
 
-                from loading import LoadingScreen, load_background_fast
+                import importlib
                 import game
+                importlib.reload(game)
+                game.run()
 
-                bg = load_background_fast(screen, "background.png")
-                loading = LoadingScreen(screen, bg)
-
-                bundle = game.build_game_state(screen, W, H, tick=loading.tick)
-
-                game.start_background_music()
-                game.run_loop(screen, W, H, bundle)
-
-                stop_background_music()
                 start_background_music()
-
-            except SystemExit:
-                raise
             except Exception as e:
-                print("Erro ao rodar game:", e)
-                import traceback
-                traceback.print_exc()
+                print(f"Erro ao rodar game.py: {e}")
                 break
 
-    stop_background_music()
     if MIXER_OK:
         try:
+            pygame.mixer.music.stop()
             pygame.mixer.stop()
         except Exception:
             pass
