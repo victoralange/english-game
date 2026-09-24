@@ -344,17 +344,18 @@ COMPLETED_PANEL_W  = 1966 / 2014
 COMPLETED_PANEL_H  = 660 / 781
 
 COMPLETED_LEFTBOX_X = 84 / 2014
-COMPLETED_LEFTBOX_Y = 264 / 781
+COMPLETED_LEFTBOX_Y = 180 / 781
 COMPLETED_LEFTBOX_W = 940 / 2014
-COMPLETED_LEFTBOX_H = 275 / 781
+COMPLETED_LEFTBOX_H = 420 / 781
 
 COMPLETED_LINE_X = 143 / 2014
-COMPLETED_LINE_W = (526 - 143) / 2014
-COMPLETED_LINE_H = 61 / 781
+COMPLETED_LINE_W = (600 - 143) / 2014
+COMPLETED_LINE_H = 70 / 781
 
-COMPLETED_LINE1_Y = 345 / 781
-COMPLETED_LINE2_Y = 406 / 781
-COMPLETED_LINE3_Y = 467 / 781
+COMPLETED_LINE1_Y = 230 / 781
+COMPLETED_LINE2_Y = 320 / 781
+COMPLETED_LINE3_Y = 410 / 781
+COMPLETED_LINE4_Y = 500 / 781
 
 COMPLETED_VALUE_X = 750 / 2014
 COMPLETED_VALUE_W = (985 - 750) / 2014
@@ -1477,7 +1478,8 @@ def build_game_state(screen, W, H, tick=None):
     for ly in [
         COMPLETED_LINE1_Y,
         COMPLETED_LINE2_Y,
-        COMPLETED_LINE3_Y
+        COMPLETED_LINE3_Y,
+        COMPLETED_LINE4_Y
     ]:
         lines_rects.append(
             make_box_comp(
@@ -1634,7 +1636,7 @@ def build_game_state(screen, W, H, tick=None):
 
     _tick()
     questions = load_questions()
-    random.shuffle(questions)
+    questions = random.sample(questions, 10) 
 
     current_question = questions[0]
 
@@ -2433,7 +2435,7 @@ def run_loop(screen, W, H, bundle):
                 labels = ["", "", "", ""]
                 values = [str(served_customers), str(happy_customers), f"${money}", str(score)]
 
-                for i in range(3):
+                for i in range(4):
                     if i >= len(state["completed_lines_rects"]):
                         break
                     label_rect = state["completed_lines_rects"][i]

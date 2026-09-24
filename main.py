@@ -150,7 +150,6 @@ running = True
 
 _menu_action = "quit"
 
-
 def play_game():
     global running, _menu_action
     _menu_action = "play"
