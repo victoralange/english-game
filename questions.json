@@ -3,7 +3,7 @@
     {
       "id": 1,
       "customer": "Anna",
-      "customer_image": "customers/9.png",
+      "customer_image": "customers/8.png",
       "question": "I want something briny and light. What do you serve?",
       "keyword": "briny",
       "options": ["Chocolate cake", "Grilled salmon with lemon", "Beef stew", "Buttered toast"],
@@ -33,7 +33,7 @@
     {
       "id": 2,
       "customer": "Tom",
-      "customer_image": "customers/2.png",
+      "customer_image": "customers/8.png",
       "question": "I'm craving something gooey and comforting. What do you serve?",
       "keyword": "gooey",
       "options": ["Spicy curry", "Iced tea", "Melted cheese pasta", "Dry toast"],
@@ -63,7 +63,7 @@
     {
       "id": 3,
       "customer": "Mia",
-      "customer_image": "customers/3.png",
+      "customer_image": "customers/9.png",
       "question": "I'd like something mild and airy for lunch. What do you serve?",
       "keyword": "airy",
       "options": ["Spicy curry", "Heavy steak", "Croissant", "Meringue"],
@@ -483,7 +483,7 @@
     {
       "id": 17,
       "customer": "Sophia",
-      "customer_image": "customers/1.png",
+      "customer_image": "customers/8.png",
       "question": "I want something sweet and frozen. What do you serve?",
       "keyword": "frozen",
       "options": ["Vanilla ice cream", "Soup", "Spicy curry", "Dry toast"],
