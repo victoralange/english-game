@@ -63,7 +63,7 @@
     {
       "id": 3,
       "customer": "Mia",
-      "customer_image": "customers/9.png",
+      "customer_image": "customers/10.png",
       "question": "I'd like something mild and airy for lunch. What do you serve?",
       "keyword": "airy",
       "options": ["Spicy curry", "Heavy steak", "Croissant", "Meringue"],
@@ -93,7 +93,7 @@
     {
       "id": 4,
       "customer": "Leo",
-      "customer_image": "customers/4.png",
+      "customer_image": "customers/10.png",
       "question": "I want something rich and smoky. What do you serve?",
       "keyword": "smoky",
       "options": ["Vanilla ice cream", "Heavy steak", "Green tea", "Steamed rice"],
@@ -768,14 +768,14 @@
       "correct_ingredients": [5, 6],
       "plate_name": "Yogurt",
       "plate_text": "Thick, creamy and smooth — a cool, tangy spoonful.",
-      "ingredients": [
+      "ingredients": [  
         { "name": "Salmon fillet", "image": "ingredients/salmon.png" },
         { "name": "Cheese", "image": "ingredients/cheese.png" },
         { "name": "Lettuce", "image": "ingredients/lettuce.png" },
         { "name": "Pasta", "image": "ingredients/pasta.png" },
         { "name": "Lemon", "image": "ingredients/lemon.png" },
         { "name": "Milk", "image": "ingredients/milk.png" },
-        { "name": "Yogurt culture", "image": "ingredients/yogurt_culture.png" },
+        { "name": "Yogurt", "image": "ingredients/yogurt_culture.png" },
         { "name": "Bread", "image": "ingredients/bread.png" },
         { "name": "Cream", "image": "ingredients/cream.png" }
       ]

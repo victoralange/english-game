@@ -1633,11 +1633,19 @@ def build_game_state(screen, W, H, tick=None):
     P8 = [q for q in all_questions if q.get("customer_image") == "customers/8.png"]
     OUTRAS = [q for q in all_questions if q.get("customer_image") != "customers/8.png"]
 
-    N = 10
+    N = 27
 
-    qtd_p8 = random.randint(1, min(len(P8), N))
+    qtd_p8 = min(len(P8), N)
+    qtd_outras = N - qtd_p8
+
+    if len(OUTRAS) < qtd_outras:
+        raise ValueError(
+            f"Não há perguntas suficientes: "
+            f"{len(P8)} P8 + {len(OUTRAS)} outras para {N} perguntas."
+        )
+
     escolhidas_p8 = random.sample(P8, qtd_p8)
-    escolhidas_outras = random.sample(OUTRAS, N - qtd_p8)
+    escolhidas_outras = random.sample(OUTRAS, qtd_outras)
 
     questions = escolhidas_p8 + escolhidas_outras
     random.shuffle(questions)
@@ -2293,7 +2301,6 @@ def run_loop(screen, W, H, bundle):
             for btn in answer_buttons:
                 btn.draw(screen)
         else:
-            # Fim do jogo: fundo do restaurante em vez do customer.png gigante
             screen.blit(state["serving_bg"], state["serve_rect"])
         if feedback:
             max_fb_w = int(state["serve_rect"].width * 0.85)

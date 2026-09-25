@@ -25,7 +25,7 @@ screen = pygame.display.set_mode(
     pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF,
     vsync=1
 )
-pygame.display.set_caption("Restaurant Simulator")
+pygame.display.set_caption("Flavor Chef")
 
 clock = pygame.time.Clock()
 
@@ -301,9 +301,46 @@ def main():
                 start_background_music()
 
             except Exception as e:
-                print(f"Erro ao rodar game.py: {e}")
                 import traceback
-                traceback.print_exc()
+
+                erro = traceback.format_exc()
+                print(erro)
+
+                pygame.display.set_caption("ERRO - Flavor Chef")
+
+                screen.fill((25, 25, 25))
+
+                font_title = pygame.font.SysFont("arial", 32, bold=True)
+                font_error = pygame.font.SysFont("arial", 20)
+
+                title = font_title.render("Ocorreu um erro ao abrir o jogo", True, (255, 100, 100))
+                screen.blit(title, (50, 50))
+
+                y = 110
+
+                for linha in erro.splitlines():
+                    if y > H - 40:
+                        break
+
+                    texto = font_error.render(linha[:120], True, (255, 255, 255))
+                    screen.blit(texto, (50, y))
+                    y += 28
+
+                pygame.display.flip()
+
+                esperando = True
+
+                while esperando:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            esperando = False
+                        elif event.type == pygame.KEYDOWN:
+                            esperando = False
+                        elif event.type == pygame.MOUSEBUTTONDOWN:
+                            esperando = False
+
+                    clock.tick(30)
+
                 break
     if MIXER_OK:
         try:
