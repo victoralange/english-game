@@ -5,7 +5,7 @@ from PIL import Image
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 
-BACKGROUND_MUSIC_VOLUME = 0.02
+BACKGROUND_MUSIC_VOLUME = 0.1
 
 pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.display.init()
@@ -139,10 +139,7 @@ FADE_SPEED = 6.0
 
 running = True
 
-# ------------------------------------------------------------
-# NOVO: variável que guarda a ação escolhida no menu
-# ("play" ou "quit") para o run_menu() retornar corretamente.
-# ------------------------------------------------------------
+# Variável que guarda a ação escolhida no menu ("play" ou "quit")
 _menu_action = "quit"
 
 
@@ -265,10 +262,14 @@ def run_menu():
 def main():
     start_background_music()
 
+    # Módulo da LoadingScreen (renomeie o arquivo para loading.py)
+    import loading
+
     while True:
         result = run_menu()
         if result == "quit":
             break
+
         elif result == "play":
             try:
                 if MIXER_OK:
@@ -280,13 +281,30 @@ def main():
                 import importlib
                 import game
                 importlib.reload(game)
-                game.run()
 
+                pygame.display.set_caption("Flavor Chef")
+
+                # ▶️ Inicia a música de fundo do jogo
+                game.start_background_music()
+
+                # -------------------------------------------------
+                # Loading screen enquanto o game.py carrega
+                # -------------------------------------------------
+                bg_fast = loading.load_background_fast(screen, "background.png")
+                loader = loading.LoadingScreen(screen, bg_fast)
+
+                bundle = game.build_game_state(screen, W, H, tick=loader.tick)
+                game.run_loop(screen, W, H, bundle)
+                # -------------------------------------------------
+
+                pygame.display.set_caption("Restaurant Simulator")
                 start_background_music()
+
             except Exception as e:
                 print(f"Erro ao rodar game.py: {e}")
+                import traceback
+                traceback.print_exc()
                 break
-
     if MIXER_OK:
         try:
             pygame.mixer.music.stop()

@@ -56,7 +56,7 @@ def start_background_music():
         return
     try:
         pygame.mixer.music.load(path)
-        pygame.mixer.music.set_volume(0.02)
+        pygame.mixer.music.set_volume(0.1)
         pygame.mixer.music.play(-1)
     except Exception as e:
         print("Erro tocando música de fundo:", e)
@@ -2239,7 +2239,6 @@ def run_loop(screen, W, H, bundle):
                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
         screen.fill((0, 0, 0))
-
         if current_question is not None:
             screen.blit(state["serving_bg"], state["serve_rect"])
 
@@ -2294,8 +2293,8 @@ def run_loop(screen, W, H, bundle):
             for btn in answer_buttons:
                 btn.draw(screen)
         else:
-            screen.blit(state["customer_bg"], state["cust_rect"])
-
+            # Fim do jogo: fundo do restaurante em vez do customer.png gigante
+            screen.blit(state["serving_bg"], state["serve_rect"])
         if feedback:
             max_fb_w = int(state["serve_rect"].width * 0.85)
             fb_lines = wrap_text(feedback, state["fonts"]["feedback"], max_fb_w)
